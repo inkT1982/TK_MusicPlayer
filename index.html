@@ -144,7 +144,6 @@
     overflow: hidden;
   }
 
-  /* Window Perimeter Shadow Ring */
   .well-shadow {
     position: absolute;
     inset: 0;
@@ -154,7 +153,6 @@
     z-index: 10;
   }
 
-  /* Rotor for independent rotation without disrupting slide animations */
   .disc-rotor {
     position: absolute;
     inset: 0;
@@ -163,7 +161,6 @@
     will-change: transform;
   }
 
-  /* Mechanical Animations */
   @keyframes insertDisc {
     0% { transform: translate(140%, -10%) scale(0.85) rotate(20deg); opacity: 0; }
     65% { transform: translate(-4%, 2%) scale(1.03) rotate(-2deg); opacity: 1; }
@@ -830,20 +827,24 @@ async function api(method,params){
 async function extractEmbeddedArt(audioUrl){
   if(!window.jsmediatags)return '';
   return new Promise(resolve=>{
-    window.jsmediatags.read(audioUrl,{
-      onSuccess:tag=>{
-        const pic=tag.tags&&tag.tags.picture;
-        if(pic&&pic.data){
-          let base64='';
-          const bytes=new Uint8Array(pic.data);
-          for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
-          resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
-        }else{
-          resolve('');
-        }
-      },
-      onError:()=>resolve('')
-    });
+    try {
+      window.jsmediatags.read(audioUrl,{
+        onSuccess:tag=>{
+          const pic=tag.tags&&tag.tags.picture;
+          if(pic&&pic.data){
+            let base64='';
+            const bytes=new Uint8Array(pic.data);
+            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
+            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
+          }else{
+            resolve('');
+          }
+        },
+        onError:()=>resolve('')
+      });
+    } catch(e) {
+      resolve('');
+    }
   });
 }
 
@@ -916,11 +917,9 @@ async function openFolder(path){
   }
 }
 
-// Unified Album Load & Animation Trigger (Eject old CD if switching, Insert new CD)
 async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, startIdx = 0){
   if(isAnimating) return;
   
-  // If clicking the same album already loaded, just play the track instantly with zero animations
   if(currentAlbumPath === albumPath){
     playIdx(startIdx);
     return;
@@ -949,7 +948,6 @@ async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, st
 
   const discEl = $('#disc');
   
-  // Eject current CD if a different one is loaded
   if(tracks.length > 0 && currentAlbumPath && currentAlbumPath !== albumPath){
     stopSpin();
     discEl.classList.add('ejecting');
@@ -970,7 +968,6 @@ async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, st
 
   draw();
 
-  // Insert new CD animation
   discEl.classList.add('inserting');
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
@@ -991,7 +988,6 @@ function drawLib(){
   view.forEach(f=>{
     if(f['.tag']==='folder'){
       const r = rowWithThumb('▸', f.name, f.path_lower, async ()=>{
-        // Fetch subfolder contents to check if it's an album folder
         try {
           let subJ = await api('files/list_folder',{path:f.path_lower,recursive:false,include_mounted_folders:true});
           let subEntries = subJ.entries||[];
@@ -999,7 +995,10 @@ function drawLib(){
             subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
             subEntries = subEntries.concat(subJ.entries||[]);
           }
-          const subAudioFiles = subEntries.filter(isAudio);
+          // Sort subfolder audio tracks alphabetically/numerically to avoid random track order
+          const subAudioFiles = subEntries
+            .filter(isAudio)
+            .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
           
           stack.push({path:f.path_lower,name:f.name});
           openFolder(f.path_lower);
@@ -1110,7 +1109,7 @@ async function playIdx(i){
 
   try{
     const link = await getLink(trackToPlay.path_lower);
-    if(sessionId !== playSessionId) return; // Discard stale request if user clicked another track mid-fetch
+    if(sessionId !== playSessionId) return;
 
     A.src = link;
     await A.play();
@@ -1231,7 +1230,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
