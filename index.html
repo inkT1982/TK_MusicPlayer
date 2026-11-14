@@ -114,18 +114,11 @@
     width: 98%;
     max-width: 390px;
     margin: 0 auto 20px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 10px 24px rgba(0, 0, 0, 0.95),
+      inset 0 0 0 2px #050506,
+      0 1px 0 rgba(255, 255, 255, 0.08);
     overflow: hidden;
-  }
-
-  /* Precise Rim Shadow Overlay: leaves center 75% crystal clear, shades only the outer edge */
-  .well-shadow {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, transparent 72%, rgba(0, 0, 0, 0.85) 100%);
-    pointer-events: none;
-    z-index: 10;
   }
 
   .disc {
@@ -146,7 +139,11 @@
         #64748b 315deg,
         #c8ced6 360deg
       );
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    /* Inset shadow creates realistic tray rim depth directly on the disc edge while keeping center bright */
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.85),
+      inset 0 0 22px rgba(0, 0, 0, 0.9),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
     transition: filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
   }
@@ -688,7 +685,6 @@
         <div class="hub"></div>
       </div>
     </div>
-    <div class="well-shadow"></div>
   </div>
   <div class="lcd">
     <div class="row1"><span id="trk">T--/--</span><span id="time">--:--</span></div>
@@ -1121,6 +1117,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
   
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
