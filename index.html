@@ -927,14 +927,17 @@ async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   folderCoverUrl = resolvedCover;
   coverUrl = resolvedCover;
 
-  // Reset rotation angle to 0 for the incoming new CD
+  // 1. Reset rotation angle to 0 for the incoming new CD
   spinAngle = 0;
   const rotor = $('#disc-rotor');
   if(rotor) rotor.style.transform = 'rotate(0deg)';
 
   draw();
   discEl.classList.add('inserting');
-  setTimeout(() => discEl.classList.remove('inserting'), 1100);
+
+  // 2. Wait for the tray to finish sliding in completely (1100ms) BEFORE spinning up the motor and playing audio
+  await new Promise(r => setTimeout(r, 1100));
+  discEl.classList.remove('inserting');
 
   playIdx(idx);
 }
@@ -977,6 +980,16 @@ function drawLib(){
   lib.append(so);
 }
 
+function row(n,t,fn){
+  const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
+  d.innerHTML=`<i>{n}</i><span></span>`;d.lastChild.textContent=t; // Wait, template literal fix: `<i>${n}</i>`
+  // Let's ensure template literals are properly written:
+  // d.innerHTML=`<i>${n}</i><span></span>`;
+  d.onclick=fn;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}};
+  return d;
+}
+
+// Fixed row helper definition with correct backticks:
 function row(n,t,fn){
   const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
   d.innerHTML=`<i>${n}</i><span></span>`;d.lastChild.textContent=t;
