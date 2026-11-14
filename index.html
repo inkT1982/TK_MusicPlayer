@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TK-100 CD Player</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        },
+        colors: {
+          chassis: {
+            base: '#121213',
+            surface: '#191A1C',
+            elevated: '#222427',
+            border: '#2E3034',
+          },
+          accent: {
+            amber: '#FF6B1A',
+            amberGlow: 'rgba(255, 107, 26, 0.35)',
+            green: '#22C55E',
+          }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --seek-pct: 0%;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #0B0B0C;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+      radial-gradient(circle at 50% 100%, rgba(255, 107, 26, 0.03) 0%, transparent 45%);
+    color: #E5E5E7;
+    margin: 0;
+    min-height: 100vh;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+  }
+
+  /* Precision Brushed Anodized Chassis */
+  .chassis-card {
+    background: linear-gradient(165deg, #1E1F22 0%, #141517 60%, #18191C 100%);
+    box-shadow: 
+      0 28px 60px -12px rgba(0, 0, 0, 0.85),
+      0 0 0 1px rgba(255, 255, 255, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  /* Recessed Disc Well */
+  .disc-well {
+    background: radial-gradient(circle at 50% 35%, #161719 0%, #09090A 75%);
+    box-shadow: 
+      inset 0 8px 24px rgba(0, 0, 0, 0.95),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.9),
+      0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Realistic Iridescent Polycarbonate Compact Disc */
+  .disc {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    animation: spin 2.8s linear infinite paused;
+    background:
+      radial-gradient(circle, transparent 28%, rgba(255, 255, 255, 0.14) 28.5%, transparent 29.5%),
+      radial-gradient(circle, transparent 66%, rgba(0, 0, 0, 0.25) 67%, transparent 68%),
+      conic-gradient(
+        from 35deg,
+        #C9CDD4 0deg,
+        #8A929E 28deg,
+        #E4E8EE 55deg,
+        #A5C4D4 82deg,
+        #D7B9D5 108deg,
+        #F0E6C8 135deg,
+        #9EA6B2 168deg,
+        #E8ECF2 205deg,
+        #9BBCD0 238deg,
+        #D4B6CE 268deg,
+        #EFE5CA 298deg,
+        #8E96A2 332deg,
+        #C9CDD4 360deg
+      );
+    box-shadow: 
+      0 10px 25px rgba(0, 0, 0, 0.75),
+      inset 0 0 0 1.5px rgba(255, 255, 255, 0.45),
+      inset 0 0 18px rgba(0, 0, 0, 0.35);
+    transition: filter 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+  }
+
+  /* Specular Light Refraction Sheen */
+  .disc::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 15deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.55) 18deg,
+      transparent 38deg,
+      transparent 165deg,
+      rgba(255, 255, 255, 0.4) 192deg,
+      transparent 215deg,
+      transparent 360deg
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  /* Fine Data Track Micro-grooves */
+  .disc::after {
+    content: "";
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    background: repeating-radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.03) 0px,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+  }
+
+  .disc.on {
+    animation-play-state: running;
+  }
+
+  .disc.empty {
+    filter: grayscale(0.95) brightness(0.28) contrast(0.9);
+    transform: scale(0.985);
+  }
+
+  /* Center Printed Disc Label */
+  .lab {
+    position: absolute;
+    z-index: 2;
+    inset: 29%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #24262A, #121315 80%);
+    color: #F4F4F6;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 15%;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    overflow: hidden;
+    box-shadow: 
+      0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 0 0 4px rgba(15, 16, 18, 0.65),
+      inset 0 2px 6px rgba(255, 255, 255, 0.08);
+  }
+
+  /* Polycarbonate Inner Ring & Magnetic Spindle Clamp */
+  .hub {
+    position: absolute;
+    z-index: 3;
+    inset: 42.5%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #2E3136, #0E0F11 75%);
+    box-shadow: 
+      0 0 0 5px rgba(235, 240, 248, 0.22),
+      0 0 0 6px rgba(0, 0, 0, 0.45),
+      inset 0 1px 1px rgba(255, 255, 255, 0.25),
+      0 3px 6px rgba(0, 0, 0, 0.8);
+  }
+
+  .hub::after {
+    content: "";
+    position: absolute;
+    inset: 34%;
+    border-radius: 50%;
+    background: #070708;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .disc { animation: none; }
+  }
+
+  /* Crisp Recessed OLED Status Display */
+  .oled-screen {
+    background: linear-gradient(180deg, #070809 0%, #0B0C0E 100%);
+    box-shadow: 
+      inset 0 2px 10px rgba(0, 0, 0, 0.95),
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .oled-amber {
+    color: #FF7A2F;
+    text-shadow: 0 0 14px rgba(255, 107, 26, 0.42);
+  }
+
+  /* Precision Tactile Scrubber Range Input */
+  input[type="range"].scrubber {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 22px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  input[type="range"].scrubber:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  input[type="range"].scrubber::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      #FF6B1A 0%,
+      #FF6B1A var(--seek-pct),
+      #27292D var(--seek-pct),
+      #27292D 100%
+    );
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  input[type="range"].scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #F4F4F6;
+    border: 2px solid #141517;
+    margin-top: -5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.25);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+
+  input[type="range"].scrubber:not(:disabled):hover::-webkit-slider-thumb {
+    transform: scale(1.2);
+    background: #FFFFFF;
+  }
+
+  input[type="range"].scrubber::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #27292D;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  input[type="range"].scrubber::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: #FF6B1A;
+  }
+
+  input[type="range"].scrubber::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #F4F4F6;
+    border: 2px solid #141517;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+  }
+
+  /* Tactile Machined Transport Buttons */
+  .tactile-btn {
+    background: linear-gradient(180deg, #27292D 0%, #1C1D20 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 4px 10px rgba(0, 0, 0, 0.55),
+      0 1px 0 rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    color: #D4D4D8;
+    transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1), background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .tactile-btn:hover {
+    background: linear-gradient(180deg, #2E3035 0%, #212226 100%);
+    color: #FFFFFF;
+  }
+
+  .tactile-btn:active {
+    transform: translateY(1.5px) scale(0.985);
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.7),
+      inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Braun Signature Primary Play/Pause Button */
+  .tactile-btn-primary {
+    background: linear-gradient(180deg, #FF772B 0%, #E55A0E 100%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 
+      0 6px 16px rgba(255, 107, 26, 0.28),
+      0 2px 4px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    color: #0D0D0E;
+  }
+
+  .tactile-btn-primary:hover {
+    background: linear-gradient(180deg, #FF8540 0%, #F06214 100%);
+    color: #000000;
+  }
+
+  .tactile-btn-primary:active {
+    transform: translateY(1.5px) scale(0.985);
+    box-shadow: 
+      0 2px 6px rgba(255, 107, 26, 0.25),
+      inset 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Secondary Pill Micro-Switches */
+  .mini-switch {
+    background: #18191B;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 5px rgba(0, 0, 0, 0.4);
+    transition: all 0.15s ease;
+  }
+
+  .mini-switch:hover {
+    background: #202225;
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .mini-switch:active {
+    transform: translateY(1px);
+  }
+
+  .led-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3F4248;
+    transition: all 0.2s ease;
+  }
+
+  .mini-switch[aria-pressed="true"] {
+    border-color: rgba(255, 107, 26, 0.35);
+    background: #1E1B19;
+    color: #FFFFFF;
+  }
+
+  .mini-switch[aria-pressed="true"] .led-dot {
+    background: #FF6B1A;
+    box-shadow: 0 0 8px #FF6B1A, 0 0 2px #FFFFFF;
+  }
+
+  /* Accessible Focus Rings */
+  .tactile-btn:focus-visible,
+  .tactile-btn-primary:focus-visible,
+  .mini-switch:focus-visible,
+  .row:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  .go:focus-visible {
+    outline: 2px solid #FF6B1A;
+    outline-offset: 2px;
+  }
+
+  /* Library Drawer Styling */
+  .lib-drawer {
+    background: #141517;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #D4D4D8;
+    border: 1px solid transparent;
+    transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  }
+
+  .row:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #FFFFFF;
+  }
+
+  .row.cur {
+    background: rgba(255, 107, 26, 0.12);
+    border-color: rgba(255, 107, 26, 0.28);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  .row.cur i {
+    color: #FF7A2F;
+  }
+
+  .row i {
+    font-style: normal;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    color: #71717A;
+    width: 1.8rem;
+    text-align: center;
+    flex: none;
+  }
+
+  .row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+
+  /* Form Controls inside Library Drawer */
+  .lib-drawer label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #A1A1AA;
+    margin: 12px 0 5px;
+  }
+
+  .lib-drawer input,
+  .lib-drawer select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #2C2E33;
+    background: #0D0E10;
+    color: #F4F4F6;
+    font: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .lib-drawer input:focus,
+  .lib-drawer select:focus {
+    border-color: #FF6B1A;
+    outline: none;
+  }
+
+  .lib-drawer button.go {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: linear-gradient(180deg, #FF772B 0%, #E55A0E 100%);
+    color: #0D0D0E;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255, 107, 26, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: filter 0.15s ease, transform 0.08s ease;
+  }
+
+  .lib-drawer button.go:hover {
+    filter: brightness(1.06);
+  }
+
+  .lib-drawer button.go:active {
+    transform: translateY(1px);
+  }
+
+  .note {
+    color: #71717A;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin: 12px 0 0;
+  }
+</style>
+</head>
+<body class="antialiased selection:bg-orange-500/30 selection:text-orange-200">
+
+  <!-- Main Hi-Fi Transport Unit -->
+  <main class="chassis-card max-w-[440px] mx-auto rounded-[28px] p-5 sm:p-6">
+    
+    <!-- Industrial Header Plate -->
+    <header class="flex items-center justify-between mb-5 px-1">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-block w-2 h-2 rounded-full bg-[#FF6B1A] shadow-[0_0_8px_#FF6B1A]"></span>
+        <span class="font-bold tracking-[0.14em] text-sm text-zinc-100">TK-100</span>
+        <span class="text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/[0.05] text-zinc-400 border border-white/[0.06]">DIGITAL</span>
+      </div>
+      <small class="text-[11px] font-mono uppercase tracking-[0.12em] text-zinc-500">Compact Disc Player</small>
+    </header>
+
+    <!-- Recessed Optical Disc Bay -->
+    <div class="disc-well rounded-full p-2.5 sm:p-3 w-[86%] sm:w-[84%] mx-auto mb-6 relative">
+      <div class="disc empty" id="disc">
+        <div class="lab" id="lab">No disc</div>
+        <div class="hub"></div>
+      </div>
+    </div>
+
+    <!-- High-Contrast OLED Status Display -->
+    <div class="oled-screen rounded-2xl px-4 py-3.5 mb-3.5 relative overflow-hidden">
+      <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-500 mb-1">
+        <span>TRACK / TOTAL</span>
+        <span>ELAPSED</span>
+      </div>
+      <div class="flex items-baseline justify-between font-mono leading-none mb-2">
+        <span id="trk" class="text-base sm:text-lg font-medium text-zinc-400 tracking-wider">T--/--</span>
+        <span id="time" class="text-2xl sm:text-[28px] font-semibold oled-amber tracking-tight">--:--</span>
+      </div>
+      <div class="pt-2 border-t border-white/[0.06] flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" id="status-dot"></span>
+        <div class="font-mono text-xs sm:text-[13px] text-zinc-200 truncate w-full" id="msg">Sign in to read your library</div>
+      </div>
+    </div>
+
+    <!-- Tactile Progress Scrubber -->
+    <div class="px-0.5 mb-5">
+      <input type="range" class="scrubber" id="seek" min="0" max="1000" value="0" aria-label="Seek" disabled>
+    </div>
+
+    <!-- Machined Transport Controls -->
+    <div class="grid grid-cols-4 gap-2.5 sm:gap-3 mb-5">
+      <button class="tactile-btn h-12 sm:h-[52px] rounded-xl flex items-center justify-center cursor-pointer" id="prev" aria-label="Previous track">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+      </button>
+      <button class="tactile-btn-primary h-12 sm:h-[52px] rounded-xl flex items-center justify-center cursor-pointer" id="pp" aria-label="Play">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24" id="ppi"><path d="M7 4v16l13-8z"/></svg>
+      </button>
+      <button class="tactile-btn h-12 sm:h-[52px] rounded-xl flex items-center justify-center cursor-pointer" id="next" aria-label="Next track">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+      </button>
+      <button class="tactile-btn h-12 sm:h-[52px] rounded-xl flex items-center justify-center cursor-pointer" id="stop" aria-label="Stop">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+      </button>
+    </div>
+
+    <!-- Secondary Mode & Eject Switches -->
+    <div class="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+      <button class="mini-switch px-3.5 py-2 rounded-full text-xs font-medium text-zinc-300 inline-flex items-center gap-2 cursor-pointer" id="shuf" aria-pressed="false">
+        <span class="led-dot"></span>
+        <span>Shuffle</span>
+      </button>
+      <button class="mini-switch px-3.5 py-2 rounded-full text-xs font-medium text-zinc-300 inline-flex items-center gap-2 cursor-pointer" id="eject">
+        <svg class="w-3.5 h-3.5 fill-current text-zinc-400" viewBox="0 0 24 24"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>
+        <span>Eject</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Dropbox Library & Auth Module -->
+  <section class="lib-drawer max-w-[440px] mx-auto mt-4 rounded-[24px] p-4 sm:p-5" id="lib"></section>
+
+  <audio id="a" preload="auto"></audio>
+
+<script>
+const $=s=>document.querySelector(s);
+const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
+let S=null,stack=[{path:'',name:'Library'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false;
+
+const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
+const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
+const fmt=t=>isFinite(t)?Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'):'--:--';
+const pad=n=>String(n).padStart(2,'0');
+const say=t=>$('#msg').textContent=t;
+const isAudio=f=>f['.tag']==='file'&&/\.(mp3|flac|m4a|aac|wav|ogg)$/i.test(f.name);
+const clean=n=>n.replace(/\.[^.]+$/,'');
+const syncSeekFill=()=>{
+  const el=$('#seek');
+  const pct=(el.value/1000)*100;
+  el.style.setProperty('--seek-pct',pct+'%');
+};a
+
+async function api(method,params){
+  const res=await fetch(`https://api.dropboxapi.com/2/${method}`,{
+    method:'POST',
+    headers:{
+      'Authorization':`Bearer ${S.token}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify(params)
+  });
+  if(!res.ok){
+    if(res.status===401||res.status===403){
+      S=null;save(null);showLogin('Session expired or invalid token. Sign in again.');
+    }
+    const errJson=await res.json().catch(()=>({}));
+    throw new Error(errJson.error_summary||'Dropbox API error '+res.status);
+  }
+  return await res.json();
+}
+
+function showLogin(note){
+  $('#lib').innerHTML=`<div class="flex items-center justify-between mb-1">
+    <h2 class="text-sm font-semibold tracking-tight text-zinc-100 m-0">Connect to Dropbox</h2>
+    <span class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Cloud Source</span>
+  </div>
+  <label for="tok">Dropbox Access Token</label>
+  <input id="tok" type="password" autocomplete="off" placeholder="sl.B... or generated access token">
+  <button class="go" id="login">Connect Dropbox</button>
+  <p class="note">${note||'Paste a Dropbox access token with files.metadata.read and files.content.read scopes. Your token is saved locally on this device; Sign out clears it.'}</p>`;
+  $('#login').onclick=login;
+  $('#tok').onkeydown=e=>{if(e.key==='Enter')login()};
+}
+async function login(){
+  const tok=$('#tok').value.trim();
+  if(!tok){say('Enter your Dropbox access token');return}
+  say('Connecting…');
+  S={token:tok};
+  save(S);
+  await openFolder('');
+}
+
+async function openFolder(path){
+  say('Reading…');
+  try{
+    let j=await api('files/list_folder',{
+      path:path,
+      recursive:false,
+      include_mounted_folders:true
+    });
+    let entries=[...j.entries];
+    while(j.has_more){
+      j=await api('files/list_folder/continue',{cursor:j.cursor});
+      entries.push(...j.entries);
+    }
+    view=entries
+      .filter(f=>f['.tag']==='folder'||isAudio(f))
+      .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
+    say(tracks.length?cur().name:'Choose a disc');
+    drawLib();
+  }catch(e){say(e.message)}
+}
+function drawLib(){
+  const lib=$('#lib');
+  lib.innerHTML=`<div class="flex items-center justify-between gap-2 pb-3 mb-2 border-b border-white/[0.06]">
+    <h2 class="text-xs font-mono uppercase tracking-wider text-zinc-400 m-0 truncate">${stack.length===1&&!tracks.length?'Choose a disc':stack.map(s=>s.name).join(' / ')}</h2>
+  </div>
+  <div class="space-y-0.5" id="lib-list"></div>`;
+  const list=$('#lib-list');
+  if(stack.length>1)list.append(row('↑','Back',()=>{stack.pop();openFolder(stack[stack.length-1].path)}));
+  const files=view.filter(f=>f['.tag']==='file');
+  view.forEach(f=>{
+    if(f['.tag']==='folder')list.append(row('▸',f.name,()=>{stack.push({path:f.path_lower,name:f.name});openFolder(f.path_lower)}));
+    else{
+      const n=files.indexOf(f);
+      const r=row(pad(n+1),clean(f.name),()=>{tracks=files;disc=stack[stack.length-1].name;idx=n;playIdx(n)});
+      if(tracks===files&&idx===n)r.classList.add('cur');
+      list.append(r);
+    }
+  });
+  if(!view.length)list.insertAdjacentHTML('beforeend','<p class="note py-3 text-center">This folder has no music or sub-folders.</p>');
+  const footer=document.createElement('div');
+  footer.className='mt-3 pt-3 border-t border-white/[0.06] flex justify-end';
+  const so=document.createElement('button');
+  so.className='mini-switch px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 cursor-pointer';
+  so.textContent='Sign out';
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;disc='';stack=[{path:'',name:'Library'}];draw();$('#time').textContent='--:--';say('Sign in to read your library');showLogin()};
+  footer.append(so);
+  lib.append(footer);
+}
+function row(n,t,fn){
+  const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
+  d.innerHTML=`<i>${n}</i><span></span>`;d.lastChild.textContent=t;
+  d.onclick=fn;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}};
+  return d;
+}
+
+const cur=()=>tracks[idx]||{name:''};
+function draw(){
+  const has=tracks.length>0;
+  $('#disc').classList.toggle('empty',!has);
+  $('#lab').textContent=has?disc:'No disc';
+  $('#trk').textContent=has?`T${pad(idx+1)}/${pad(tracks.length)}`:'T--/--';
+  $('#seek').disabled=!has;
+  if(!has){$('#seek').value=0;syncSeekFill();}
+}
+async function playIdx(i){
+  if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
+  idx=i;draw();say('Reading disc…');
+  try{
+    const j=await api('files/get_temporary_link',{path:cur().path_lower});
+    A.src=j.link;
+    await A.play();
+    say(clean(cur().name));
+    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:clean(cur().name),album:disc,artist:'TK-100'});
+    drawLib();
+  }catch(e){say('Error: '+e.message)}
+}
+function step(d){
+  if(!tracks.length)return;
+  if(shuffle&&tracks.length>1){let n;do{n=Math.floor(Math.random()*tracks.length)}while(n===idx);playIdx(n);return}
+  const n=idx+d;
+  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();A.currentTime=0;say('End of disc')}
+}
+
+$('#pp').onclick=()=>{
+  if(!tracks.length){say('Pick a track below');return}
+  if(A.paused&&A.src&&!A.src.startsWith('data:'))A.play();
+  else if(A.paused)playIdx(Math.max(idx,0));
+  else A.pause();
+};
+$('#next').onclick=()=>step(1);
+$('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
+$('#stop').onclick=()=>{A.pause();A.currentTime=0;$('#seek').value=0;syncSeekFill();say(tracks.length?cur().name:'No disc')};
+$('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
+$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';draw();$('#time').textContent='--:--';$('#seek').value=0;syncSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'Library'}];openFolder('')}};
+$('#seek').oninput=e=>{syncSeekFill();if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration};
+
+A.onplay=()=>{
+  $('#disc').classList.add('on');
+  $('#ppi').innerHTML=IC.pause;
+  $('#pp').setAttribute('aria-label','Pause');
+  $('#status-dot').className='w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0';
+};
+A.onpause=()=>{
+  $('#disc').classList.remove('on');
+  $('#ppi').innerHTML=IC.play;
+  $('#pp').setAttribute('aria-label','Play');
+  $('#status-dot').className='w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0';
+};
+A.ontimeupdate=()=>{
+  if(A.src.startsWith('data:'))return;
+  $('#time').textContent=fmt(A.currentTime);
+  if(isFinite(A.duration)){$('#seek').value=A.currentTime/A.duration*1000;syncSeekFill();}
+};
+A.onended=()=>step(1);
+A.onerror=()=>{if(!A.src.startsWith('data:'))say('Cannot play this file')};
+if('mediaSession' in navigator){
+  const m=navigator.mediaSession;
+  m.setActionHandler('play',()=>A.play());m.setActionHandler('pause',()=>A.pause());
+  m.setActionHandler('nexttrack',()=>step(1));m.setActionHandler('previoustrack',()=>step(-1));
+}
+
+S=load();
+if(S&&S.token){draw();openFolder('/Music')}else{draw();showLogin()}
+</script>
+</body>
+</html>
