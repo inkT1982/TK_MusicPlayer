@@ -569,7 +569,6 @@
     text-align: center;
   }
 
-  /* Mini Album Thumbnail */
   .row img.thumb {
     width: 24px;
     height: 24px;
@@ -587,7 +586,6 @@
     white-space: nowrap;
   }
 
-  /* Authentication Form Styling */
   label {
     display: block;
     font-size: 12px;
@@ -642,7 +640,6 @@
     margin: 12px 0 0;
   }
 
-  /* TV Mode Styling */
   body.tv-mode {
     background: #000000 !important;
     justify-content: center;
@@ -725,7 +722,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='',isAnimating=false;
 
 let linkCache = {};
 async function getLink(path){
@@ -747,11 +744,22 @@ async function getFolderArt(folderPath){
   try{
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
+    
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
       folderArtCache[folderPath] = linkRes.link;
       return linkRes.link;
+    }
+
+    const audioFiles = subEntries.filter(isAudio);
+    if(audioFiles.length > 0){
+      const audioLink = await getLink(audioFiles[0].path_lower);
+      const embeddedArt = await extractEmbeddedArt(audioLink);
+      if(embeddedArt){
+        folderArtCache[folderPath] = embeddedArt;
+        return embeddedArt;
+      }
     }
   }catch(e){}
   folderArtCache[folderPath] = '';
@@ -915,7 +923,11 @@ async function openFolder(path){
   }
 }
 
+// CD Slide-in when tray is empty
 async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
+  if(isAnimating) return;
+  isAnimating = true;
+
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
   if(imgFile){
@@ -952,9 +964,14 @@ async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
   say(`CD Loaded: ${albumName} - ready to play`);
+  isAnimating = false;
 }
 
+// CD Eject + Slide-in when swapping albums
 async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, startIdx){
+  if(isAnimating) return;
+  isAnimating = true;
+
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
   if(imgFile){
@@ -997,6 +1014,7 @@ async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, 
   discEl.classList.add('inserting');
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
+  isAnimating = false;
 
   if(tracks === audioFiles && currentAlbumPath === albumPath) {
     playIdx(idx);
@@ -1037,7 +1055,7 @@ function drawLib(){
       const n=files.indexOf(f);
       const albumFolder = stack[stack.length-1];
       const r=row(pad(n+1),clean(f.name),null,async ()=>{
-        // EXACT CHECK: If changing track in the SAME loaded album, bypass animation entirely and play directly!
+        // AUDIT CHECK: If clicking a track in the SAME loaded album, bypass animations entirely!
         if(currentAlbumPath !== albumFolder.path || tracks !== files){
           await loadAndInsertAlbum(files, albumFolder.name, albumFolder.path, view, n);
         } else {
@@ -1178,7 +1196,8 @@ $('#tv-mode').onclick = () => {
 };
 
 $('#eject').onclick=async ()=>{
-  if(!tracks.length && !disc) return;
+  if(!tracks.length && !disc || isAnimating) return;
+  isAnimating = true;
 
   stopSpin();
   const discEl = $('#disc');
@@ -1199,6 +1218,7 @@ $('#eject').onclick=async ()=>{
   $('#seek').value=0;
   updateSeekFill();
   say('Disc ejected');
+  isAnimating = false;
 
   stack = [{path:'', name:'TK_MusicPlayer'}];
   openFolder('');
