@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="AppIcon.png?v=2">
 <title>TK-100 Compact Disc Player</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
     --chassis-bg: #18181a;
@@ -692,7 +691,6 @@
       gap: 16px;
       align-content: start;
     }
-    /* Left Column: Upper Half of Player */
     .deck .top {
       grid-column: 1;
       grid-row: 1;
@@ -709,7 +707,6 @@
       grid-row: 3;
       margin-bottom: 0;
     }
-    /* Right Column: Lower Half of Player */
     .deck input[type=range] {
       grid-column: 2;
       grid-row: 1;
@@ -802,21 +799,12 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
+    // Check for cover.jpg / folder.jpg / any image file in folder
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
       folderArtCache[folderPath] = linkRes.link;
       return linkRes.link;
-    }
-
-    const audioFiles = subEntries.filter(isAudio);
-    if(audioFiles.length > 0){
-      const audioLink = await getLink(audioFiles[0].path_lower);
-      const embeddedArt = await extractEmbeddedArt(audioLink);
-      if(embeddedArt){
-        folderArtCache[folderPath] = embeddedArt;
-        return embeddedArt;
-      }
     }
   }catch(e){}
   folderArtCache[folderPath] = '';
@@ -882,30 +870,6 @@ async function api(method,params){
     throw new Error(msg||`Dropbox HTTP ${res.status}`);
   }
   return await res.json();
-}
-
-async function extractEmbeddedArt(audioUrl){
-  if(!window.jsmediatags)return '';
-  return new Promise(resolve=>{
-    try {
-      window.jsmediatags.read(audioUrl,{
-        onSuccess:tag=>{
-          const pic=tag.tags&&tag.tags.picture;
-          if(pic&&pic.data){
-            let base64='';
-            const bytes=new Uint8Array(pic.data);
-            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
-            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
-          }else{
-            resolve('');
-          }
-        },
-        onError:()=>resolve('')
-      });
-    } catch(e) {
-      resolve('');
-    }
-  });
 }
 
 function preloadImage(url){
@@ -993,14 +957,6 @@ async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, st
     try{
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
       resolvedCover = linkRes.link;
-    }catch(e){}
-  }
-
-  if(!resolvedCover && audioFiles.length > 0){
-    try{
-      const firstLink = await getLink(audioFiles[0].path_lower);
-      const embedded = await extractEmbeddedArt(firstLink);
-      if(embedded) resolvedCover = embedded;
     }catch(e){}
   }
 
@@ -1289,6 +1245,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
