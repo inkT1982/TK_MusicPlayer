@@ -96,14 +96,14 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay */
+  /* Optical Disc Bay - Made Much Bigger */
   .well {
     position: relative;
     background: var(--well-bg);
     border-radius: 50%;
     padding: 10px;
-    width: 82%;
-    max-width: 280px;
+    width: 96%;
+    max-width: 360px;
     margin: 0 auto 20px;
     box-shadow:
       inset 0 8px 20px rgba(0, 0, 0, 0.95),
@@ -132,10 +132,43 @@
       );
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
     transition: filter 0.35s ease, opacity 0.35s ease;
+    overflow: hidden;
   }
 
-  /* Iridescent Optical Sheen */
-  .disc::after {
+  /* Custom Cover Art Image when present */
+  .disc .cover-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: none;
+  }
+  .disc.has-art .cover-art {
+    display: block;
+  }
+  .disc.has-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 15deg,
+      transparent 0%,
+      rgba(125, 211, 252, 0.2) 12%,
+      rgba(244, 114, 182, 0.15) 18%,
+      transparent 30%,
+      transparent 60%,
+      rgba(56, 189, 248, 0.2) 72%,
+      transparent 82%
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  /* Iridescent Optical Sheen (default disc) */
+  .disc:not(.has-art)::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -168,16 +201,16 @@
   /* Disc Center Label */
   .lab {
     position: absolute;
-    z-index: 1;
-    inset: 28%;
+    z-index: 3;
+    inset: 32%;
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #27272b, #141416);
     color: var(--text-main);
     display: grid;
     place-items: center;
     text-align: center;
-    padding: 16%;
-    font-size: 11px;
+    padding: 12%;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.03em;
     line-height: 1.2;
@@ -187,11 +220,15 @@
       0 0 0 2px rgba(255, 255, 255, 0.14),
       inset 0 1px 3px rgba(0, 0, 0, 0.8);
   }
+  .disc.has-art .lab {
+    background: rgba(20, 20, 22, 0.85);
+    backdrop-filter: blur(4px);
+  }
 
   /* Magnetic Spindle Hub */
   .hub {
     position: absolute;
-    z-index: 2;
+    z-index: 4;
     inset: 43%;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #3a3a40, #0d0d0f);
@@ -564,6 +601,7 @@
   </div>
   <div class="well">
     <div class="disc empty" id="disc">
+      <img class="cover-art" id="disc-art" alt="Album Cover">
       <div class="lab" id="lab">No disc</div>
       <div class="hub"></div>
     </div>
@@ -592,7 +630,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'Library'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false;
+let S=null,stack=[{path:'',name:'Library'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,coverUrl='';
 
 const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
 const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
@@ -600,6 +638,7 @@ const fmt=t=>isFinite(t)?Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(
 const pad=n=>String(n).padStart(2,'0');
 const say=t=>$('#msg').textContent=t;
 const isAudio=f=>f['.tag']==='file'&&/\.(mp3|flac|m4a|aac|wav|ogg)$/i.test(f.name);
+const isImage=f=>f['.tag']==='file'&&/\.(jpg|jpeg|png|webp|gif)$/i.test(f.name);
 const clean=n=>n.replace(/\.[^.]+$/,'');
 
 function updateSeekFill(){
@@ -658,10 +697,25 @@ async function openFolder(path){
       entries=entries.concat(j.entries||[]);
     }
     view=entries
-      .filter(f=>f['.tag']==='folder'||isAudio(f))
+      .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
+    
+    // Check if there is an image in this folder to use as disc cover art
+    const imgFile=view.find(isImage);
+    if(imgFile){
+      try{
+        const linkRes=await api('files/get_temporary_link',{path:imgFile.path_lower});
+        coverUrl=linkRes.link;
+      }catch(err){
+        coverUrl='';
+      }
+    }else{
+      coverUrl='';
+    }
+
     say(tracks.length?clean(cur().name):'Choose a disc');
     drawLib();
+    draw();
   }catch(e){
     say('Error: ' + e.message);
     showLogin('Connection failed: ' + e.message + '. Please check your token and try again.');
@@ -672,20 +726,20 @@ function drawLib(){
   const lib=$('#lib');
   lib.innerHTML=`<h2>${stack.length===1&&!tracks.length?'Choose a disc':stack.map(s=>s.name).join(' / ')}</h2>`;
   if(stack.length>1)lib.append(row('↑','Back',()=>{stack.pop();openFolder(stack[stack.length-1].path)}));
-  const files=view.filter(f=>f['.tag']==='file');
+  const files=view.filter(isAudio);
   view.forEach(f=>{
     if(f['.tag']==='folder'){
       lib.append(row('▸',f.name,()=>{stack.push({path:f.path_lower,name:f.name});openFolder(f.path_lower)}));
-    }else{
+    }else if(isAudio(f)){
       const n=files.indexOf(f);
       const r=row(pad(n+1),clean(f.name),()=>{tracks=files;disc=stack[stack.length-1].name;idx=n;playIdx(n)});
       if(tracks===files&&idx===n)r.classList.add('cur');
       lib.append(r);
     }
   });
-  if(!view.length)lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
+  if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();S=null;save(null);tracks=[];idx=-1;draw();showLogin()};
+  so.onclick=()=>{A.pause();S=null;save(null);tracks=[];idx=-1;coverUrl='';draw();showLogin()};
   lib.append(so);
 }
 
@@ -698,11 +752,23 @@ function row(n,t,fn){
 
 const cur=()=>tracks[idx]||{name:''};
 function draw(){
-  const has=tracks.length>0;
-  $('#disc').classList.toggle('empty',!has);
-  $('#lab').textContent=has?disc:'No disc';
-  $('#trk').textContent=has?`T${pad(idx+1)}/${pad(tracks.length)}`:'T--/--';
-  $('#seek').disabled=!has;
+  const has=tracks.length>0 || coverUrl!=='';
+  const discEl=$('#disc');
+  const artEl=$('#disc-art');
+  
+  discEl.classList.toggle('empty',!tracks.length && !coverUrl);
+  
+  if(coverUrl){
+    artEl.src=coverUrl;
+    discEl.classList.add('has-art');
+  }else{
+    artEl.src='';
+    discEl.classList.remove('has-art');
+  }
+
+  $('#lab').textContent=tracks.length>0?disc:(coverUrl?'Cover Art':'No disc');
+  $('#trk').textContent=tracks.length>0?`T${pad(idx+1)}/${pad(tracks.length)}`:'T--/--';
+  $('#seek').disabled=!tracks.length;
   updateSeekFill();
 }
 
@@ -736,7 +802,7 @@ $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
-$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'Library'}];openFolder('')}};
+$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'Library'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
 A.onplay=()=>{$('#disc').classList.add('on');$('#ppi').innerHTML=IC.pause;$('#pp').setAttribute('aria-label','Pause')};
