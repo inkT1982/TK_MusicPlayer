@@ -146,7 +146,7 @@
     overflow: hidden;
   }
 
-  /* Mechanical Insertion & Ejection Animations (50% Slower) */
+  /* Mechanical Animations (50% Slower) */
   @keyframes insertDisc {
     0% { transform: translate(140%, -10%) scale(0.85) rotate(70deg); opacity: 0; }
     65% { transform: translate(-4%, 2%) scale(1.03) rotate(-6deg); opacity: 1; }
@@ -222,7 +222,7 @@
     pointer-events: none;
   }
 
-  /* Empty Tray State - Matte Dark Transport Well */
+  /* Empty Tray State */
   .disc.empty {
     background: radial-gradient(circle at center, #161619 0%, #0b0b0d 65%, #050506 100%);
     box-shadow: inset 0 12px 28px rgba(0, 0, 0, 0.98), 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -652,32 +652,32 @@
   /* TV Mode Exit Button */
   .tv-exit {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    top: 25px;
+    right: 25px;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 50px;
+    height: 50px;
     display: none;
     place-items: center;
     cursor: pointer;
-    z-index: 1000;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     transition: all 0.2s ease;
   }
   body.tv-mode .tv-exit {
-    display: grid;
+    display: grid !important;
   }
   .tv-exit:hover {
-    background: rgba(255, 90, 31, 0.25);
-    color: var(--text-main);
+    background: rgba(255, 90, 31, 0.3);
     border-color: var(--braun-orange);
   }
 </style>
 </head>
 <body>
-<button class="tv-exit" id="tv-exit" aria-label="Exit TV Mode"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+<button class="tv-exit" id="tv-exit" aria-label="Exit TV Mode"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
 
 <main class="deck">
   <div class="top">
@@ -866,18 +866,51 @@ async function openFolder(path){
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
     const audioFiles = view.filter(isAudio);
-    const currentFolderName = stack.length > 1 ? stack[stack.length-1].name : '';
+    const folderName = stack.length > 1 ? stack[stack.length-1].name : '';
 
-    // If opening an album folder containing audio files, load the album at the Album Level
     if(stack.length > 1 && audioFiles.length > 0){
-      if(disc !== currentFolderName){
-        await loadAlbum(audioFiles, currentFolderName, view, false);
+      if(disc !== folderName){
+        const discEl = $('#disc');
+        if(tracks.length > 0){
+          discEl.classList.add('ejecting');
+          await new Promise(r => setTimeout(r, 900));
+          discEl.classList.remove('ejecting');
+        }
+
+        tracks = audioFiles;
+        disc = folderName;
+        idx = 0;
+
+        const imgFile = view.find(isImage);
+        if(imgFile){
+          try{
+            const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+            folderCoverUrl = linkRes.link;
+          }catch(e){ folderCoverUrl = ''; }
+        } else {
+          folderCoverUrl = '';
+        }
+        coverUrl = folderCoverUrl;
+
+        if(!folderCoverUrl && tracks.length > 0){
+          try{
+            const firstLink = await getLink(tracks[0].path_lower);
+            const embedded = await extractEmbeddedArt(firstLink);
+            if(embedded) coverUrl = embedded;
+          }catch(e){}
+        }
+
+        draw();
+        discEl.classList.add('inserting');
+        setTimeout(() => discEl.classList.remove('inserting'), 1100);
       } else {
         tracks = audioFiles;
       }
       say(`CD Loaded: ${disc}`);
+    } else if(stack.length === 1) {
+      say('Choose a CD folder');
     } else {
-      say(view.some(f=>f['.tag']==='folder') ? 'Choose a CD folder' : 'Folder is empty');
+      say(view.some(f=>f['.tag']==='folder') ? 'Choose a sub-folder' : 'Folder is empty');
     }
 
     drawLib();
@@ -885,54 +918,6 @@ async function openFolder(path){
   }catch(e){
     say('Error: ' + e.message);
     showLogin('Connection failed: ' + e.message + '. Please check your token and try again.');
-  }
-}
-
-async function loadAlbum(audioFiles, albumName, folderView, playImmediately = false){
-  const imgFile = folderView.find(isImage);
-  let newFolderCover = '';
-  if(imgFile){
-    try{
-      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
-      newFolderCover = linkRes.link;
-    }catch(err){}
-  }
-
-  if(!newFolderCover && audioFiles.length > 0){
-    try{
-      const firstLink = await getLink(audioFiles[0].path_lower);
-      const embedded = await extractEmbeddedArt(firstLink);
-      if(embedded) newFolderCover = embedded;
-    }catch(e){}
-  }
-
-  const discEl = $('#disc');
-  
-  if(tracks.length > 0 && disc !== albumName){
-    discEl.classList.add('ejecting');
-    await new Promise(r => setTimeout(r, 900));
-    discEl.classList.remove('ejecting');
-  }
-
-  tracks = audioFiles;
-  disc = albumName;
-  folderCoverUrl = newFolderCover;
-  coverUrl = folderCoverUrl;
-
-  if(playImmediately){
-    A.pause();
-    stopSpin();
-    A.removeAttribute('src');
-  }
-
-  draw();
-  
-  // Trigger slow CD insertion animation at the Album/CD level only
-  discEl.classList.add('inserting');
-  setTimeout(() => discEl.classList.remove('inserting'), 1100);
-
-  if(playImmediately && idx >= 0){
-    playIdx(idx);
   }
 }
 
@@ -953,13 +938,9 @@ function drawLib(){
     }else if(isAudio(f)){
       const n=files.indexOf(f);
       const r=row(pad(n+1),clean(f.name),()=>{
-        const albumName = stack[stack.length-1].name;
-        if(tracks !== files || disc !== albumName){
-          idx = n;
-          loadAlbum(files, albumName, view, true);
-        } else {
-          playIdx(n);
-        }
+        tracks = files;
+        disc = stack[stack.length-1].name;
+        playIdx(n);
       });
       if(tracks===files&&idx===n)r.classList.add('cur');
       lib.append(r);
@@ -1048,13 +1029,9 @@ $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-press
 
 // TV Mode Toggle & Exit
 const toggleTvMode = () => {
-  const active=document.body.classList.toggle('tv-mode');
-  $('#tv-mode').setAttribute('aria-pressed',active);
-  if(active && document.documentElement.requestFullscreen){
-    document.documentElement.requestFullscreen().catch(()=>{});
-  } else if(!active && document.exitFullscreen && document.fullscreenElement){
-    document.exitFullscreen().catch(()=>{});
-  }
+  document.body.classList.toggle('tv-mode');
+  const active = document.body.classList.contains('tv-mode');
+  $('#tv-mode').setAttribute('aria-pressed', active);
 };
 
 $('#tv-mode').onclick = toggleTvMode;
@@ -1083,7 +1060,6 @@ $('#eject').onclick=async ()=>{
   updateSeekFill();
   say('Disc ejected');
 
-  // Return to root folder
   stack = [{path:'', name:'TK_MusicPlayer'}];
   openFolder('');
 };
