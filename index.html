@@ -96,7 +96,7 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay */
+  /* Optical Disc Bay - Expanded Size */
   .well {
     position: relative;
     background: var(--well-bg);
@@ -630,7 +630,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'Library'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,coverUrl='';
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,coverUrl='';
 
 const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
 const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
@@ -682,7 +682,7 @@ function showLogin(note){
     if(!t){say('Enter a valid access token');return}
     S={token:t};
     save(S);
-    stack=[{path:'',name:'Library'}];
+    stack=[{path:'',name:'TK_MusicPlayer'}];
     openFolder('');
   };
 }
@@ -700,6 +700,14 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
+    // Auto-load album audio files as tracks when opening a folder
+    const audioFiles=view.filter(isAudio);
+    if(audioFiles.length>0){
+      tracks=audioFiles;
+      disc=stack[stack.length-1].name;
+      if(idx<0||idx>=tracks.length) idx=0;
+    }
+
     // Check if there is an image in this folder to use as disc cover art
     const imgFile=view.find(isImage);
     if(imgFile){
@@ -713,7 +721,7 @@ async function openFolder(path){
       coverUrl='';
     }
 
-    say(tracks.length?clean(cur().name):'Choose a disc');
+    say(tracks.length?clean(tracks[idx]?.name||'Ready'):'Choose a disc');
     drawLib();
     draw();
   }catch(e){
@@ -729,7 +737,7 @@ function drawLib(){
   const files=view.filter(isAudio);
   view.forEach(f=>{
     if(f['.tag']==='folder'){
-      lib.append(row('▸',f.name,()=>{stack.push({path:f.path_lower,name:f.name});openFolder(f.path_lower)}));
+      lib.append(row('▸',f.name,()=>{stack.push({path:f.path_lower,name:f.name});idx=-1;openFolder(f.path_lower)}));
     }else if(isAudio(f)){
       const n=files.indexOf(f);
       const r=row(pad(n+1),clean(f.name),()=>{tracks=files;disc=stack[stack.length-1].name;idx=n;playIdx(n)});
@@ -793,7 +801,7 @@ function step(d){
 }
 
 $('#pp').onclick=()=>{
-  if(!tracks.length){say('Pick a track below');return}
+  if(!tracks.length){say('Pick a disc or track');return}
   if(A.paused&&A.src&&!A.src.startsWith('data:'))A.play();
   else if(A.paused)playIdx(Math.max(idx,0));
   else A.pause();
@@ -802,11 +810,11 @@ $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
-$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'Library'}];openFolder('')}};
+$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
-A.onplay=()=>{$('#disc').classList.add('on');$('#ppi').innerHTML=IC.pause;$('#pp').setAttribute('aria-label','Pause')};
-A.onpause=()=>{$('#disc').classList.remove('on');$('#ppi').innerHTML=IC.play;$('#pp').setAttribute('aria-label','Play')};
+A.onplay=()=>{$('#disc').classList.add('on');$('#ppi').innerHTML=IC.pause;$('#pp'].setAttribute('aria-label','Pause')};
+A.onpause=()=>{$('#disc').classList.remove('on');$('#ppi').innerHTML=IC.play;$('#pp'].setAttribute('aria-label','Play')};
 A.ontimeupdate=()=>{
   if(A.src.startsWith('data:'))return;
   $('#time').textContent=fmt(A.currentTime);
