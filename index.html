@@ -673,6 +673,66 @@
     justify-content: center !important;
     padding-top: 10px !important;
   }
+
+  /* LANDSCAPE TWO-COLUMN SPLIT (Upper half left, Lower half right) */
+  @media (orientation: landscape) and (max-height: 600px) {
+    body {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 12px;
+    }
+    .deck {
+      max-width: 720px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-content: start;
+    }
+    /* Left Column: Upper Half of Player */
+    .deck .top {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: 6px;
+    }
+    .deck .well {
+      grid-column: 1;
+      grid-row: 2;
+      max-width: 220px;
+      margin: 0 auto 8px;
+    }
+    .deck .lcd {
+      grid-column: 1;
+      grid-row: 3;
+      margin-bottom: 0;
+    }
+    /* Right Column: Lower Half of Player */
+    .deck input[type=range] {
+      grid-column: 2;
+      grid-row: 1;
+      margin-top: 8px;
+    }
+    .deck .btns {
+      grid-column: 2;
+      grid-row: 2;
+      margin-bottom: 12px;
+    }
+    .deck .tools {
+      grid-column: 2;
+      grid-row: 3;
+      padding-top: 8px;
+    }
+    .lib {
+      max-width: 420px;
+      width: 100%;
+      margin: 0;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+  }
 </style>
 </head>
 <body>
@@ -995,7 +1055,6 @@ function drawLib(){
             subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
             subEntries = subEntries.concat(subJ.entries||[]);
           }
-          // Sort subfolder audio tracks alphabetically/numerically to avoid random track order
           const subAudioFiles = subEntries
             .filter(isAudio)
             .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
