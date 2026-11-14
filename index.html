@@ -930,7 +930,7 @@ async function loadAlbumOnly(audioFiles, albumName, folderView){
   say(`CD Loaded: ${albumName} - ready to play`);
 }
 
-// CD Swap / Insert animation when hitting play or selecting a track
+// CD Swap / Insert animation when hitting play or selecting a track on a DIFFERENT CD
 async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
@@ -1014,6 +1014,7 @@ function drawLib(){
       const n=files.indexOf(f);
       const r=row(pad(n+1),clean(f.name),async ()=>{
         const albumName = stack[stack.length-1].name;
+        // If it's a different CD, eject/insert. If it's the SAME CD, just play the track instantly without animations!
         if(disc !== albumName || tracks !== files){
           await loadAndInsertAlbum(files, albumName, view, n);
         } else {
@@ -1178,6 +1179,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
