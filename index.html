@@ -871,6 +871,7 @@ async function openFolder(path){
       if(disc !== folderName){
         const discEl = $('#disc');
         if(tracks.length > 0){
+          stopSpin(); // Freeze rotation immediately upon triggering eject/album switch
           discEl.classList.add('ejecting');
           await new Promise(r => setTimeout(r, 900));
           discEl.classList.remove('ejecting');
@@ -1037,17 +1038,17 @@ $('#tv-mode').onclick = () => {
   $('#tv-mode').setAttribute('aria-pressed', active);
 };
 
-// Eject: If no CD loaded, do nothing. If loaded, eject and return to root folder.
+// Eject: If no CD loaded, do nothing. If loaded, freeze rotation instantly, eject, and return to root folder.
 $('#eject').onclick=async ()=>{
   if(!tracks.length && !disc) return;
 
+  stopSpin(); // Freeze rotation immediately at the exact click moment
   const discEl = $('#disc');
   discEl.classList.add('ejecting');
   await new Promise(r => setTimeout(r, 900));
   discEl.classList.remove('ejecting');
 
   A.pause();
-  stopSpin();
   A.removeAttribute('src');
   tracks=[];
   idx=-1;
