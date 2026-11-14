@@ -866,7 +866,6 @@ function draw(){
 async function playIdx(i){
   if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
   idx=i;
-  if(!folderCoverUrl)coverUrl='';
   draw();say('Reading disc…');
   try{
     const j=await api('files/get_temporary_link',{path:cur().path_lower});
@@ -877,16 +876,6 @@ async function playIdx(i){
     
     updateMediaSession(clean(cur().name), disc, coverUrl);
     if('mediaSession' in navigator)navigator.mediaSession.playbackState = 'playing';
-
-    if(!folderCoverUrl){
-      extractEmbeddedArt(j.link).then(embedded=>{
-        if(embedded && idx===i){
-          coverUrl=embedded;
-          draw();
-          updateMediaSession(clean(cur().name), disc, coverUrl);
-        }
-      });
-    }
 
     drawLib();
   }catch(e){say('Error: '+e.message)}
@@ -942,7 +931,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
