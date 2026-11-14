@@ -49,6 +49,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
   }
 
   /* Main Deck Enclosure */
@@ -505,7 +506,7 @@
     box-shadow: 0 0 8px var(--braun-orange);
   }
 
-  /* Disc Library Drawer */
+  /* Disc Library Drawer (Default Portrait) */
   .lib {
     width: 100%;
     max-width: 440px;
@@ -674,61 +675,81 @@
     padding-top: 10px !important;
   }
 
-  /* LANDSCAPE TWO-COLUMN SPLIT (Upper half left, Lower half right) */
-  @media (orientation: landscape) and (max-height: 600px) {
+  /* REFINED LANDSCAPE STYLING: CD FOCUS ON LEFT, GROUPED CONTROLS ON RIGHT, LIBRARY HIDDEN BEHIND TAB */
+  @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
-      flex-wrap: wrap;
       justify-content: center;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 12px;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      padding: 16px;
     }
     .deck {
-      max-width: 720px;
+      max-width: 780px;
       width: 100%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      align-content: start;
+      grid-template-columns: 310px 1fr;
+      gap: 24px;
+      align-items: center;
+      padding: 24px;
     }
-    .deck .top {
-      grid-column: 1;
-      grid-row: 1;
-      margin-bottom: 6px;
-    }
+    /* Left Side: Big Spinning CD Focus */
     .deck .well {
       grid-column: 1;
-      grid-row: 2;
-      max-width: 220px;
-      margin: 0 auto 8px;
+      grid-row: 1 / span 5;
+      max-width: 290px;
+      margin: 0;
     }
-    .deck .lcd {
-      grid-column: 1;
-      grid-row: 3;
-      margin-bottom: 0;
-    }
-    .deck input[type=range] {
+    /* Right Side: Better Grouped Controls */
+    .deck .top {
       grid-column: 2;
       grid-row: 1;
-      margin-top: 8px;
+      margin: 0 0 8px 0;
     }
-    .deck .btns {
+    .deck .lcd {
       grid-column: 2;
       grid-row: 2;
       margin-bottom: 12px;
     }
-    .deck .tools {
+    .deck input[type=range] {
       grid-column: 2;
       grid-row: 3;
-      padding-top: 8px;
+      margin: 0 0 16px 0;
     }
+    .deck .btns {
+      grid-column: 2;
+      grid-row: 4;
+      margin-bottom: 14px;
+    }
+    .deck .tools {
+      grid-column: 2;
+      grid-row: 5;
+      border-top: none;
+      padding-top: 0;
+    }
+    /* Library Drawer hides off-screen behind a tab in landscape */
     .lib {
-      max-width: 420px;
-      width: 100%;
-      margin: 0;
-      max-height: 85vh;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 420px;
+      max-width: 90vw;
+      background: #141416;
+      border-left: 1px solid #2a2a2e;
+      border-radius: 0;
+      box-shadow: -16px 0 40px rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
+      margin: 0;
+      height: 100vh;
+      padding: 24px;
+    }
+    .lib.open {
+      transform: translateX(0);
     }
   }
 </style>
@@ -765,6 +786,7 @@
   </div>
   <div class="tools">
     <button class="mini" id="shuf" aria-pressed="false"><span class="led"></span>Shuffle</button>
+    <button class="mini" id="lib-toggle">Library</button>
     <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
     <button class="mini" id="eject"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>Eject</button>
   </div>
@@ -793,7 +815,6 @@ function prefetchLink(path){
   }).catch(()=>{});
 }
 
-// Mobile-safe chunked stream reader for embedded ID3 tags
 async function extractEmbeddedArt(audioUrl){
   if(!window.jsmediatags) return '';
   try {
@@ -807,7 +828,7 @@ async function extractEmbeddedArt(audioUrl){
       if (done) break;
       chunks.push(value);
       receivedLength += value.length;
-      if (receivedLength >= 256 * 1024) { // Read first 256KB where ID3v2 & art live
+      if (receivedLength >= 256 * 1024) {
         reader.cancel();
         break;
       }
@@ -850,7 +871,6 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
-    // 1. Standalone image check
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
@@ -858,7 +878,6 @@ async function getFolderArt(folderPath){
       return linkRes.link;
     }
 
-    // 2. Embedded ID3 art check (via mobile-safe stream reader)
     const audioFiles = subEntries.filter(isAudio);
     if(audioFiles.length > 0){
       const audioLink = await getLink(audioFiles[0].path_lower);
@@ -1247,10 +1266,15 @@ $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
 
+$('#lib-toggle').onclick = () => {
+  $('#lib').classList.toggle('open');
+};
+
 $('#tv-mode').onclick = () => {
   document.body.classList.toggle('tv-mode');
   const active = document.body.classList.contains('tv-mode');
   $('#tv-mode').setAttribute('aria-pressed', active);
+  $('#lib').classList.remove('open');
 };
 
 $('#eject').onclick=async ()=>{
@@ -1311,7 +1335,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 
 
