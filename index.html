@@ -105,7 +105,7 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay - Machined Aperture Rim */
+  /* Optical Disc Bay Window (overflow: hidden masks sliding CD animations inside the window) */
   .well {
     position: relative;
     background: linear-gradient(145deg, #141417, #070709);
@@ -114,10 +114,21 @@
     width: 98%;
     max-width: 390px;
     margin: 0 auto 20px;
+    overflow: hidden;
     box-shadow:
-      inset 0 14px 32px rgba(0, 0, 0, 0.98),
+      inset 0 10px 24px rgba(0, 0, 0, 0.95),
       inset 0 0 0 2px #2c2c32,
       0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Inside Window Perimeter Shadow Ring */
+  .well-shadow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.85) 92%, #000000 100%);
+    pointer-events: none;
+    z-index: 10;
   }
 
   .disc {
@@ -138,10 +149,7 @@
         #64748b 315deg,
         #c8ced6 360deg
       );
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.85),
-      inset 0 0 22px rgba(0, 0, 0, 0.9),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
     transition: filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
   }
@@ -683,6 +691,7 @@
         <div class="hub"></div>
       </div>
     </div>
+    <div class="well-shadow"></div>
   </div>
   <div class="lcd">
     <div class="row1"><span id="trk">T--/--</span><span id="time">--:--</span></div>
@@ -981,7 +990,7 @@ function drawLib(){
   view.forEach(f=>{
     if(f['.tag']==='folder'){
       lib.append(row('▸',f.name,async ()=>{
-        // RULE 1: If tray is empty, selecting a CD folder slides it into the tray immediately!
+        // When tray is empty, selecting a CD folder slides it into the window immediately
         if(tracks.length === 0){
           say('Loading CD…');
           try {
@@ -997,7 +1006,7 @@ function drawLib(){
             }
           } catch(e) {}
         }
-        // RULE 2: If tray is already loaded, selecting a CD/folder just navigates without triggering slide-out/slide-in animations.
+        // When tray is loaded, selecting a CD/folder just navigates without animations
         stack.push({path:f.path_lower,name:f.name});
         openFolder(f.path_lower);
       }));
