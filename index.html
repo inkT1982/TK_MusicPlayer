@@ -820,15 +820,10 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));m.setActionHandler('previoustrack',()=>step(-1));
 }
 
-S=load();
-if(S&&S.token){
-  stack=[{path:'',name:'Library'},{path:'/music',name:'Music'}];
-  draw();
-  openFolder('/music');
-}else{
-  draw();
-  showLogin();
-}
+S = { token: "sl.u.AG3FLS2stAnfxYs_CuHiE_eZ2QrsKB7Rdr4nYBGprqgUv2KHip6Eyz1lvRouLRZ5hAeJ8R0WmhWQLgfXygJZuc5Xg_ZdwF51hAVzk0tyeWVtSbVft3i0USqCrQpvIeEtkd92ARCZB-slZV-ouFXnu8iUXeqAeJj19L3Mqt1s0bcVHM36IPAQpkor2G4eY0WzzKjtygI_d5HaBTEuLiSULQDETbIWgvS-gxlJcU3wWDm4eBjtXXcxnUFM-v5gBgkV-ooJt0MtN6e46mamvRFrfM4vY9nwFj82r5hon9FVl6x4-NAJwRcE6TpPo0nLekKSuFssb9qpYieQ4GYUi4VcQ_Y_3xd-b8TD_618_OtdsxNzlMMeoWxzult9iovMHhrWUC2rX6A9XQ0BeFBKLmSCSvSZ4eunH3rKStTZca2x4YjPVkQuOCDtxFYUVyU2VO4Xz3zYow4jFrlfzNKjD4YsEMnaz-v5l43z0P5jZ0zEnlOW-y_DifxAR6MqXh8_e2Jv9qo3whr5MGyg7Do2ve4pZhX852ldAo3BuOsSeBOSNjv0PTOSAOvXcg91KcHy-sV-ppIokOxylsg8sYtinCgK5iAnlrNHO_F6aocqeLL9P7siEFsoiv8WXNS0qYBxwwaDRxnvBDMFp26gDrt4Y7dUSQKq1DbAdr-_5LcQCaN8QRl0PIchzWPTTCWsK1kwZkjbHBxsp2tTjBuS3jffdGyK545EN98nfvMhxqJqoOGT1Ch0KpCPN2uYVPaVv1HNvnUNXu4LtYNr4i96GlT5RvL5n8xpkeCdTRStRj_Z20aqsxL7n9g1rxSJsy4LIkB22zbwHGJKjgPJhIMg2JIsp3eiD6MZraPr3dyBrvXISOKUhbitoFS9Ke8YB6a2VqZCe00Vbt8omSMXqNCkU5_NrjUtn6vVdp1iu7zZ0aqhAgk5rsCFIggRYEA8-rFcZ2EF9OsYNbbnkBAZR5tOpZD2LGNnfAdbR-B15pRjr1KbUoMOlr4Pa8xADryCvCDOvi83Y06A9LGA1YNvWkuLhcShSkwvKJHVfAOa6rLIaWgIjclM8zPsardemFIQCwRc1UyXyIEfCGZO2wLNQIwv9crJCVPxQXQ3OIQnHLX1VhdRtVpSvDLV930Zmrx80Q1mU5XZJ3M40xgs8yqjgfrR6MH8TEAeopG3lnOAIX5VyMPkrhzuc3QB-jYvzYhEg5ErjAUQCTKWGnYsb8yzzm-gUfCG3z8OQUkB415HiYnNMcYRWhch96AcEOBvswiy_fHr8ogYz0BphWSCfwxUxmhH4MWlyBAsmQyhCRWyhXNDbfOc2-q2MLxLTE-dVi3-KDxrOf1F9_DS45c" };
+stack = [{path:'',name:'Library'},{path:'/music',name:'Music'}];
+draw();
+openFolder('/music');
 </script>
 </body>
 </html>
