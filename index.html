@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>TK-100 Compact Disc Player</title>
 <link rel="apple-touch-icon" href="AppIcon.png">
+<title>TK-100 Compact Disc Player</title>
 <style>
   :root {
     --chassis-bg: #18181a;
@@ -701,14 +701,6 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
-    // Auto-load album audio files as tracks when opening a folder
-    const audioFiles=view.filter(isAudio);
-    if(audioFiles.length>0){
-      tracks=audioFiles;
-      disc=stack[stack.length-1].name;
-      if(idx<0||idx>=tracks.length) idx=0;
-    }
-
     // Check if there is an image in this folder to use as disc cover art
     const imgFile=view.find(isImage);
     if(imgFile){
@@ -722,7 +714,21 @@ async function openFolder(path){
       coverUrl='';
     }
 
-    say(tracks.length?clean(tracks[idx]?.name||'Ready'):'Choose a disc');
+    // Auto-load album audio files as tracks when opening a folder and reset deck state for new CD
+    const audioFiles=view.filter(isAudio);
+    if(audioFiles.length>0){
+      tracks=audioFiles;
+      disc=stack[stack.length-1].name;
+      idx=0;
+      A.pause();
+      A.removeAttribute('src');
+    } else {
+      tracks=[];
+      disc='';
+      idx=-1;
+    }
+
+    say(tracks.length?`CD Loaded: ${disc}`:(view.some(f=>f['.tag']==='folder')?'Choose a CD folder':'Folder is empty'));
     drawLib();
     draw();
   }catch(e){
@@ -733,7 +739,7 @@ async function openFolder(path){
 
 function drawLib(){
   const lib=$('#lib');
-  lib.innerHTML=`<h2>${stack.length===1&&!tracks.length?'Choose a disc':stack.map(s=>s.name).join(' / ')}</h2>`;
+  lib.innerHTML=`<h2>${stack.length===1&&!tracks.length?'Choose a CD':stack.map(s=>s.name).join(' / ')}</h2>`;
   if(stack.length>1)lib.append(row('↑','Back',()=>{stack.pop();openFolder(stack[stack.length-1].path)}));
   const files=view.filter(isAudio);
   view.forEach(f=>{
@@ -748,7 +754,7 @@ function drawLib(){
   });
   if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();S=null;save(null);tracks=[];idx=-1;coverUrl='';draw();showLogin()};
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;coverUrl='';draw();showLogin()};
   lib.append(so);
 }
 
@@ -761,7 +767,6 @@ function row(n,t,fn){
 
 const cur=()=>tracks[idx]||{name:''};
 function draw(){
-  const has=tracks.length>0 || coverUrl!=='';
   const discEl=$('#disc');
   const artEl=$('#disc-art');
   
@@ -789,7 +794,18 @@ async function playIdx(i){
     A.src=j.link;
     await A.play();
     say(clean(cur().name));
-    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:clean(cur().name),album:disc,artist:'TK-100'});
+    
+    // Update Media Session Metadata for Lock Screen & Control Center
+    if('mediaSession' in navigator){
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: clean(cur().name),
+        artist: 'TK-100 Compact Disc',
+        album: disc,
+        artwork: coverUrl ? [{ src: coverUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    }
+
     drawLib();
   }catch(e){say('Error: '+e.message)}
 }
@@ -802,10 +818,12 @@ function step(d){
 }
 
 $('#pp').onclick=()=>{
-  if(!tracks.length){say('Pick a disc or track');return}
-  if(A.paused&&A.src&&!A.src.startsWith('data:'))A.play();
-  else if(A.paused)playIdx(Math.max(idx,0));
-  else A.pause();
+  if(!tracks.length){say('Choose a CD folder first');return}
+  if(!A.paused){
+    A.pause();
+  } else {
+    playIdx(Math.max(idx,0));
+  }
 };
 $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
@@ -814,8 +832,18 @@ $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-press
 $('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
-A.onplay=()=>{$('#disc').classList.add('on');$('#ppi').innerHTML=IC.pause;$('#pp'].setAttribute('aria-label','Pause')};
-A.onpause=()=>{$('#disc').classList.remove('on');$('#ppi').innerHTML=IC.play;$('#pp'].setAttribute('aria-label','Play')};
+A.onplay=()=>{
+  $('#disc').classList.add('on');
+  $('#ppi').innerHTML=IC.pause;
+  $('#pp').setAttribute('aria-label','Pause');
+  if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+};
+A.onpause=()=>{
+  $('#disc').classList.remove('on');
+  $('#ppi').innerHTML=IC.play;
+  $('#pp').setAttribute('aria-label','Play');
+  if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+};
 A.ontimeupdate=()=>{
   if(A.src.startsWith('data:'))return;
   $('#time').textContent=fmt(A.currentTime);
@@ -823,10 +851,13 @@ A.ontimeupdate=()=>{
 };
 A.onended=()=>step(1);
 A.onerror=()=>{if(!A.src.startsWith('data:'))say('Cannot play this file')};
+
 if('mediaSession' in navigator){
   const m=navigator.mediaSession;
-  m.setActionHandler('play',()=>A.play());m.setActionHandler('pause',()=>A.pause());
-  m.setActionHandler('nexttrack',()=>step(1));m.setActionHandler('previoustrack',()=>step(-1));
+  m.setActionHandler('play',()=>A.play());
+  m.setActionHandler('pause',()=>A.pause());
+  m.setActionHandler('nexttrack',()=>step(1));
+  m.setActionHandler('previoustrack',()=>step(-1));
 }
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
