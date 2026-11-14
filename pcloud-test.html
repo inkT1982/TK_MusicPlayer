@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pCloud music test</title>
+<style>
+:root{--bg:#ECEEF4;--ink:#1B2233;--mute:#5B6478;--card:#fff;--line:#CFD4E2;--acc:#2F4BFF;--ok:#1F7A4D;--bad:#B3261E}
+@media(prefers-color-scheme:dark){:root{--bg:#14171F;--ink:#E7EAF3;--mute:#9AA3B8;--card:#1D212C;--line:#323849;--acc:#8EA0FF;--ok:#5BD39A;--bad:#FF8A80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Avenir Next",system-ui,sans-serif;padding:20px;max-width:640px;margin-inline:auto}
+h1{font-size:1.5rem;margin:0 0 4px}
+p{margin:0 0 14px;color:var(--mute)}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+label{display:block;font-weight:600;margin-bottom:4px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;margin-bottom:10px}
+button{padding:10px 16px;border:0;border-radius:8px;background:var(--acc);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+@media(prefers-color-scheme:dark){button{color:#14171F}}
+button:focus-visible,input:focus-visible,li:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+code{background:var(--bg);padding:2px 6px;border-radius:5px;word-break:break-all;font-size:.85rem}
+ul{list-style:none;margin:0;padding:0}
+.checks li{padding:6px 0;display:flex;gap:10px}
+.checks b{width:1.4em;text-align:center}
+.ok b{color:var(--ok)}.bad b{color:var(--bad)}.wait b{color:var(--mute)}
+.files li{padding:10px 8px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:10px}
+.files li:hover{background:var(--bg)}
+.msg{font-size:.85rem;color:var(--mute);margin-top:2px}
+audio{width:100%;margin-top:10px}
+details summary{cursor:pointer;color:var(--mute);margin:6px 0 10px}
+</style>
+</head>
+<body>
+<h1>pCloud music test</h1>
+<p>Checks that a web page can sign in to pCloud, list a folder, and stream a track in Safari.</p>
+
+<section id="setup">
+  <label for="cid">pCloud app client ID</label>
+  <input id="cid" placeholder="From my.pcloud.com/#page=apiconsole" autocomplete="off">
+  <p>Redirect URI to register in your pCloud app:<br><code id="ruri"></code></p>
+  <button id="connect">Sign in with pCloud</button>
+  <details>
+    <summary>Or paste an access token instead</summary>
+    <label for="tok">Access token</label>
+    <input id="tok" autocomplete="off">
+    <label for="reg">Region</label>
+    <select id="reg"><option value="api.pcloud.com">US (api.pcloud.com)</option><option value="eapi.pcloud.com">Europe (eapi.pcloud.com)</option></select>
+    <button id="usetok">Use token</button>
+  </details>
+</section>
+
+<section>
+  <ul class="checks" id="checks">
+    <li class="wait" data-k="auth"><b>○</b><div>Signed in<div class="msg"></div></div></li>
+    <li class="wait" data-k="list"><b>○</b><div>Listed a folder (browser access allowed)<div class="msg"></div></div></li>
+    <li class="wait" data-k="link"><b>○</b><div>Got a stream link<div class="msg"></div></div></li>
+    <li class="wait" data-k="play"><b>○</b><div>Played audio in Safari<div class="msg"></div></div></li>
+  </ul>
+</section>
+
+<section id="browser" hidden>
+  <label id="path">Your pCloud</label>
+  <ul class="files" id="files"></ul>
+  <audio id="player" controls preload="none"></audio>
+</section>
+
+<script>
+const $=s=>document.querySelector(s);
+const ruri=location.origin+location.pathname;
+$('#ruri').textContent=ruri;
+let S={token:null,host:null},stack=[{id:0,name:'Your pCloud'}];
+
+function store(k,v){try{v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function check(k,state,msg){
+  const li=document.querySelector(`[data-k=${k}]`);
+  li.className=state;
+  li.querySelector('b').textContent=state==='ok'?'✓':state==='bad'?'✕':'○';
+  li.querySelector('.msg').textContent=msg||'';
+}
+async function api(method,params){
+  const q=new URLSearchParams({...params,access_token:S.token});
+  const r=await fetch(`https://${S.host}/${method}?${q}`);
+  const j=await r.json();
+  if(j.result!==0)throw new Error(j.error||('pCloud error '+j.result));
+  return j;
+}
+
+$('#cid').value=load('pc_cid')||'';
+$('#connect').onclick=()=>{
+  const id=$('#cid').value.trim();
+  if(!id){check('auth','bad','Enter your client ID first.');return}
+  store('pc_cid',id);
+  location.href='https://my.pcloud.com/oauth2/authorize?'+new URLSearchParams({client_id:id,response_type:'token',redirect_uri:ruri});
+};
+$('#usetok').onclick=()=>{
+  const t=$('#tok').value.trim();
+  if(!t){check('auth','bad','Paste a token first.');return}
+  start(t,$('#reg').value);
+};
+
+function start(token,host){
+  S.token=token;S.host=host;
+  check('auth','ok','Connected to '+host);
+  $('#browser').hidden=false;
+  openFolder(0);
+}
+
+async function openFolder(id){
+  try{
+    const j=await api('listfolder',{folderid:id});
+    check('list','ok','Folder list loaded without a browser block.');
+    const c=j.metadata.contents.sort((a,b)=>(b.isfolder-a.isfolder)||a.name.localeCompare(b.name));
+    const ul=$('#files');ul.innerHTML='';
+    if(stack.length>1){
+      const up=document.createElement('li');up.tabIndex=0;up.textContent='↑ Back';
+      up.onclick=()=>{stack.pop();openFolder(stack[stack.length-1].id)};
+      ul.append(up);
+    }
+    $('#path').textContent=stack.map(s=>s.name).join(' / ');
+    c.forEach(f=>{
+      const li=document.createElement('li');li.tabIndex=0;
+      const audio=!f.isfolder&&(f.contenttype||'').startsWith('audio');
+      li.textContent=(f.isfolder?'📁 ':audio?'♪ ':'   ')+f.name;
+      if(f.isfolder)li.onclick=()=>{stack.push({id:f.folderid,name:f.name});openFolder(f.folderid)};
+      else if(audio)li.onclick=()=>play(f);
+      else li.style.opacity=.5;
+      ul.append(li);
+    });
+    if(!c.length)ul.innerHTML='<li>This folder is empty.</li>';
+  }catch(e){
+    check('list','bad',e.message+' — if this says "Failed to fetch", pCloud blocked the page (CORS) and we need a different approach.');
+  }
+}
+
+async function play(f){
+  try{
+    const j=await api('getfilelink',{fileid:f.fileid});
+    check('link','ok','Link received (expires, so the app requests a fresh one per track).');
+    const p=$('#player');
+    p.src='https://'+j.hosts[0]+j.path;
+    await p.play();
+    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:f.name});
+  }catch(e){
+    check(e.message.includes('pCloud')||e.message.includes('Failed')?'link':'play','bad',e.message);
+  }
+}
+$('#player').addEventListener('playing',()=>check('play','ok','Audio is playing. Try AirPlay from the iPhone menu next.'));
+$('#player').addEventListener('error',()=>check('play','bad','Safari could not play this file (format or link problem).'));
+
+// Handle OAuth redirect: token arrives in the URL hash
+const h=new URLSearchParams(location.hash.slice(1));
+if(h.get('access_token')){
+  const host=h.get('hostname')||(h.get('locationid')==='2'?'eapi.pcloud.com':'api.pcloud.com');
+  history.replaceState(null,'',location.pathname);
+  start(h.get('access_token'),host);
+}
+</script>
+</body>
+</html>
