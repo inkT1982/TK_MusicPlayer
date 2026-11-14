@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="AppIcon.png?v=2">
 <title>TK-100 Compact Disc Player</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
     --chassis-bg: #18181a;
@@ -792,6 +793,56 @@ function prefetchLink(path){
   }).catch(()=>{});
 }
 
+// Mobile-safe chunked stream reader for embedded ID3 tags
+async function extractEmbeddedArt(audioUrl){
+  if(!window.jsmediatags) return '';
+  try {
+    const response = await fetch(audioUrl);
+    const reader = response.body.getReader();
+    let chunks = [];
+    let receivedLength = 0;
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      receivedLength += value.length;
+      if (receivedLength >= 256 * 1024) { // Read first 256KB where ID3v2 & art live
+        reader.cancel();
+        break;
+      }
+    }
+
+    let position = 0;
+    let totalArray = new Uint8Array(receivedLength);
+    for(let chunk of chunks) {
+      totalArray.set(chunk, position);
+      position += chunk.length;
+    }
+
+    const blob = new Blob([totalArray]);
+
+    return new Promise(resolve => {
+      window.jsmediatags.read(blob, {
+        onSuccess: tag => {
+          const pic = tag.tags && tag.tags.picture;
+          if(pic && pic.data){
+            let base64='';
+            const bytes = new Uint8Array(pic.data);
+            for(let i = 0; i < bytes.byteLength; i++) base64 += String.fromCharCode(bytes[i]);
+            resolve(`data:${pic.format || 'image/jpeg'};base64,${window.btoa(base64)}`);
+          }else{
+            resolve('');
+          }
+        },
+        onError: () => resolve('')
+      });
+    });
+  } catch(e) {
+    return '';
+  }
+}
+
 let folderArtCache = {};
 async function getFolderArt(folderPath){
   if(folderArtCache[folderPath] !== undefined) return folderArtCache[folderPath];
@@ -799,11 +850,23 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
+    // 1. Standalone image check
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
       folderArtCache[folderPath] = linkRes.link;
       return linkRes.link;
+    }
+
+    // 2. Embedded ID3 art check (via mobile-safe stream reader)
+    const audioFiles = subEntries.filter(isAudio);
+    if(audioFiles.length > 0){
+      const audioLink = await getLink(audioFiles[0].path_lower);
+      const embeddedArt = await extractEmbeddedArt(audioLink);
+      if(embeddedArt){
+        folderArtCache[folderPath] = embeddedArt;
+        return embeddedArt;
+      }
     }
   }catch(e){}
   folderArtCache[folderPath] = '';
@@ -940,7 +1003,6 @@ async function openFolder(path){
   }
 }
 
-// Load CD into tray and setup tracklist without automatically playing audio
 async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0){
   if(isAnimating) return;
   if(currentAlbumPath === albumPath) return;
@@ -953,6 +1015,13 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
     try{
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
       resolvedCover = linkRes.link;
+    }catch(e){}
+  }
+
+  if(!resolvedCover && audioFiles.length > 0){
+    try{
+      const firstLink = await getLink(audioFiles[0].path_lower);
+      resolvedCover = await extractEmbeddedArt(firstLink);
     }catch(e){}
   }
 
@@ -1242,6 +1311,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 
