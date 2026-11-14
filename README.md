@@ -2,9 +2,7 @@
 TK's online music player
 
 1. Overview and Design Concept 
-The TK-100 is a web-based music player designed to look and feel like a high-end, vintage piece of audio hardware (inspired by classic industrial Braun design). It connects directly to your Dropbox account, treating your cloud music folders like physical compact discs.
-
-It features:
+The TK-100 is a web-based music player designed to look and feel like a high-end, vintage piece of audio hardware (inspired by classic industrial Braun design). It connects directly to your Dropbox account, treating your cloud music folders like physical compact discs. It features:
 - A dark, brushed-metal chassis look.
 - An amber OLED display screen showing track numbers, timers, and song titles.
 - A central optical disc bay where a virtual CD spins while music plays.
