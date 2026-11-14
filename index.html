@@ -882,7 +882,7 @@ async function openFolder(path){
   }
 }
 
-// Helper to load CD into tray without playing (used when tray is empty and user selects a CD folder)
+// Load CD into tray without playing (triggers when tray is empty and user selects a CD folder)
 async function loadAlbumOnly(audioFiles, albumName, folderView){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
@@ -921,7 +921,7 @@ async function loadAlbumOnly(audioFiles, albumName, folderView){
   say(`CD Loaded: ${albumName} - ready to play`);
 }
 
-// Helper for swapping/inserting when hitting play or selecting a track
+// CD Swap / Insert animation when hitting play or selecting a track
 async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
@@ -981,7 +981,7 @@ function drawLib(){
   view.forEach(f=>{
     if(f['.tag']==='folder'){
       lib.append(row('▸',f.name,async ()=>{
-        // IF TRAY IS EMPTY: Automatically slide in this CD when selected!
+        // RULE 1: If tray is empty, selecting a CD folder slides it into the tray immediately!
         if(tracks.length === 0){
           say('Loading CD…');
           try {
@@ -997,7 +997,7 @@ function drawLib(){
             }
           } catch(e) {}
         }
-        // IF TRAY ALREADY HAS A CD LOADED: Do nothing to the tray; just navigate in to browse!
+        // RULE 2: If tray is already loaded, selecting a CD/folder just navigates without triggering slide-out/slide-in animations.
         stack.push({path:f.path_lower,name:f.name});
         openFolder(f.path_lower);
       }));
@@ -1169,6 +1169,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
