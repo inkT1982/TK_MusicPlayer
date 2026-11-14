@@ -143,12 +143,6 @@
     overflow: hidden;
   }
 
-  /* Active Spinning State class for iOS compatibility */
-  .disc.spinning {
-    animation: spin 2.6s linear infinite;
-    -webkit-animation: spin 2.6s linear infinite;
-  }
-
   /* Custom Cover Art Image when present */
   .disc .cover-art {
     position: absolute;
@@ -260,17 +254,6 @@
     inset: 34%;
     border-radius: 50%;
     background: #050506;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @-webkit-keyframes spin {
-    to { -webkit-transform: rotate(360deg); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .disc.spinning { animation: none; -webkit-animation: none; }
   }
 
   /* OLED Telemetry Screen */
@@ -651,6 +634,29 @@ const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARK
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
 let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
 
+// JS Rotation Engine for iOS PWA compatibility
+let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
+function animateSpin(timestamp){
+  if(!isSpinning)return;
+  if(!lastTime)lastTime=timestamp;
+  const delta=timestamp-lastTime;
+  lastTime=timestamp;
+  spinAngle=(spinAngle+delta*0.06)%360;
+  const d=$('#disc');
+  if(d)d.style.transform=`rotate(${spinAngle}deg)`;
+  spinReq=requestAnimationFrame(animateSpin);
+}
+function startSpin(){
+  if(isSpinning)return;
+  isSpinning=true;
+  lastTime=null;
+  spinReq=requestAnimationFrame(animateSpin);
+}
+function stopSpin(){
+  isSpinning=false;
+  if(spinReq){cancelAnimationFrame(spinReq);spinReq=null;}
+}
+
 const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
 const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
 const fmt=t=>isFinite(t)?Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'):'--:--';
@@ -825,7 +831,7 @@ function drawLib(){
   });
   if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';$('#disc').classList.remove('spinning');draw();showLogin()};
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
   lib.append(so);
 }
 
@@ -866,7 +872,7 @@ async function playIdx(i){
     const j=await api('files/get_temporary_link',{path:cur().path_lower});
     A.src=j.link;
     await A.play();
-    $('#disc').classList.add('spinning');
+    startSpin();
     say(clean(cur().name));
     
     updateMediaSession(clean(cur().name), disc, coverUrl);
@@ -890,33 +896,33 @@ function step(d){
   if(!tracks.length)return;
   if(shuffle&&tracks.length>1){let n;do{n=Math.floor(Math.random()*tracks.length)}while(n===idx);playIdx(n);return}
   const n=idx+d;
-  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();$('#disc').classList.remove('spinning');A.currentTime=0;say('End of disc')}
+  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();stopSpin();A.currentTime=0;say('End of disc')}
 }
 
 $('#pp').onclick=()=>{
   if(!tracks.length){say('Choose a CD folder first');return}
   if(!A.paused){
     A.pause();
-    $('#disc').classList.remove('spinning');
+    stopSpin();
   } else {
     playIdx(Math.max(idx,0));
   }
 };
 $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
-$('#stop').onclick=()=>{A.pause();$('#disc').classList.remove('spinning');A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
+$('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
-$('#eject').onclick=()=>{A.pause();$('#disc').classList.remove('spinning');A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
+$('#eject').onclick=()=>{A.pause();stopSpin();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
 A.onplay=()=>{
-  $('#disc').classList.add('spinning');
+  startSpin();
   $('#ppi').innerHTML=IC.pause;
   $('#pp').setAttribute('aria-label','Pause');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 };
 A.onpause=()=>{
-  $('#disc').classList.remove('spinning');
+  stopSpin();
   $('#ppi').innerHTML=IC.play;
   $('#pp').setAttribute('aria-label','Play');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -936,6 +942,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
