@@ -865,55 +865,11 @@ async function openFolder(path){
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
     const audioFiles = view.filter(isAudio);
-    const folderName = stack.length > 1 ? stack[stack.length-1].name : '';
 
-    if(stack.length > 1 && audioFiles.length > 0){
-      if(disc !== folderName){
-        // 1. Resolve and preload the NEW album cover art BEFORE ejecting the current CD
-        let resolvedCover = '';
-        const imgFile = view.find(isImage);
-        if(imgFile){
-          try{
-            const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
-            resolvedCover = linkRes.link;
-          }catch(e){}
-        }
-
-        if(!resolvedCover && audioFiles.length > 0){
-          try{
-            const firstLink = await getLink(audioFiles[0].path_lower);
-            const embedded = await extractEmbeddedArt(firstLink);
-            if(embedded) resolvedCover = embedded;
-          }catch(e){}
-        }
-
-        await preloadImage(resolvedCover);
-
-        // 2. Smoothly eject current CD with rotation frozen at click moment
-        const discEl = $('#disc');
-        if(tracks.length > 0){
-          stopSpin();
-          discEl.classList.add('ejecting');
-          await new Promise(r => setTimeout(r, 900));
-          discEl.classList.remove('ejecting');
-        }
-
-        // 3. Assign new tracks and preloaded cover art instantly without pauses
-        tracks = audioFiles;
-        disc = folderName;
-        idx = 0;
-        folderCoverUrl = resolvedCover;
-        coverUrl = resolvedCover;
-
-        draw();
-        discEl.classList.add('inserting');
-        setTimeout(() => discEl.classList.remove('inserting'), 1100);
-      } else {
-        tracks = audioFiles;
-      }
-      say(`CD Loaded: ${disc}`);
-    } else if(stack.length === 1) {
+    if(stack.length === 1) {
       say('Choose a CD folder');
+    } else if(audioFiles.length > 0) {
+      say(tracks.length > 0 && disc === stack[stack.length-1].name ? `CD Loaded: ${disc}` : 'CD ready - choose a track');
     } else {
       say(view.some(f=>f['.tag']==='folder') ? 'Choose a sub-folder' : 'Folder is empty');
     }
@@ -924,6 +880,52 @@ async function openFolder(path){
     say('Error: ' + e.message);
     showLogin('Connection failed: ' + e.message + '. Please check your token and try again.');
   }
+}
+
+async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
+  let resolvedCover = '';
+  const imgFile = folderView.find(isImage);
+  if(imgFile){
+    try{
+      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+      resolvedCover = linkRes.link;
+    }catch(e){}
+  }
+
+  if(!resolvedCover && audioFiles.length > 0){
+    try{
+      const firstLink = await getLink(audioFiles[0].path_lower);
+      const embedded = await extractEmbeddedArt(firstLink);
+      if(embedded) resolvedCover = embedded;
+    }catch(e){}
+  }
+
+  await preloadImage(resolvedCover);
+
+  const discEl = $('#disc');
+  if(tracks.length > 0 && disc !== albumName){
+    stopSpin();
+    discEl.classList.add('ejecting');
+    await new Promise(r => setTimeout(r, 900));
+    discEl.classList.remove('ejecting');
+  }
+
+  tracks = audioFiles;
+  disc = albumName;
+  idx = startIdx;
+  folderCoverUrl = resolvedCover;
+  coverUrl = resolvedCover;
+
+  // Reset rotation angle to 0 for the incoming new CD
+  spinAngle = 0;
+  const rotor = $('#disc-rotor');
+  if(rotor) rotor.style.transform = 'rotate(0deg)';
+
+  draw();
+  discEl.classList.add('inserting');
+  setTimeout(() => discEl.classList.remove('inserting'), 1100);
+
+  playIdx(idx);
 }
 
 function drawLib(){
@@ -942,10 +944,13 @@ function drawLib(){
       }));
     }else if(isAudio(f)){
       const n=files.indexOf(f);
-      const r=row(pad(n+1),clean(f.name),()=>{
-        tracks = files;
-        disc = stack[stack.length-1].name;
-        playIdx(n);
+      const r=row(pad(n+1),clean(f.name),async ()=>{
+        const albumName = stack[stack.length-1].name;
+        if(disc !== albumName || tracks !== files){
+          await loadAndInsertAlbum(files, albumName, view, n);
+        } else {
+          playIdx(n);
+        }
       });
       if(tracks===files&&idx===n)r.classList.add('cur');
       lib.append(r);
@@ -1018,7 +1023,19 @@ function step(d){
   if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();stopSpin();A.currentTime=0;say('End of disc')}
 }
 
-$('#pp').onclick=()=>{
+$('#pp').onclick=async ()=>{
+  if(stack.length === 1 && !tracks.length){
+    say('Choose a CD folder first');
+    return;
+  }
+  if(stack.length > 1 && (!tracks.length || disc !== stack[stack.length-1].name)){
+    const files = view.filter(isAudio);
+    if(files.length > 0){
+      const albumName = stack[stack.length-1].name;
+      await loadAndInsertAlbum(files, albumName, view, 0);
+      return;
+    }
+  }
   if(!tracks.length){say('Choose a CD folder first');return}
   if(!A.paused){
     A.pause();
@@ -1095,6 +1112,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
 S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
