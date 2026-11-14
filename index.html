@@ -725,7 +725,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
 
 let linkCache = {};
 async function getLink(path){
@@ -902,7 +902,7 @@ async function openFolder(path){
     if(stack.length === 1) {
       say('Choose a CD folder');
     } else if(audioFiles.length > 0) {
-      say(tracks.length > 0 && disc === stack[stack.length-1].name ? `CD Loaded: ${disc}` : 'CD ready - choose a track');
+      say(tracks.length > 0 && currentAlbumPath === stack[stack.length-1].path ? `CD Loaded: ${disc}` : 'CD ready - choose a track');
     } else {
       say(view.some(f=>f['.tag']==='folder') ? 'Choose a sub-folder' : 'Folder is empty');
     }
@@ -915,7 +915,7 @@ async function openFolder(path){
   }
 }
 
-async function loadAlbumOnly(audioFiles, albumName, folderView){
+async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
   if(imgFile){
@@ -937,6 +937,7 @@ async function loadAlbumOnly(audioFiles, albumName, folderView){
 
   tracks = audioFiles;
   disc = albumName;
+  currentAlbumPath = albumPath;
   idx = 0;
   folderCoverUrl = resolvedCover;
   coverUrl = resolvedCover;
@@ -953,7 +954,7 @@ async function loadAlbumOnly(audioFiles, albumName, folderView){
   say(`CD Loaded: ${albumName} - ready to play`);
 }
 
-async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
+async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, startIdx){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
   if(imgFile){
@@ -974,7 +975,7 @@ async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   await preloadImage(resolvedCover);
 
   const discEl = $('#disc');
-  if(tracks.length > 0 && disc !== albumName){
+  if(tracks.length > 0 && currentAlbumPath !== albumPath){
     stopSpin();
     discEl.classList.add('ejecting');
     await new Promise(r => setTimeout(r, 900));
@@ -983,6 +984,7 @@ async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
 
   tracks = audioFiles;
   disc = albumName;
+  currentAlbumPath = albumPath;
   idx = startIdx;
   folderCoverUrl = resolvedCover;
   coverUrl = resolvedCover;
@@ -996,7 +998,7 @@ async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
 
-  if(tracks === audioFiles && disc === albumName) {
+  if(tracks === audioFiles && currentAlbumPath === albumPath) {
     playIdx(idx);
   }
 }
@@ -1023,7 +1025,7 @@ function drawLib(){
             }
             const subAudioFiles = subEntries.filter(isAudio);
             if(subAudioFiles.length > 0){
-              await loadAlbumOnly(subAudioFiles, f.name, subEntries);
+              await loadAlbumOnly(subAudioFiles, f.name, f.path_lower, subEntries);
             }
           } catch(e) {}
         }
@@ -1033,10 +1035,11 @@ function drawLib(){
       lib.append(r);
     }else if(isAudio(f)){
       const n=files.indexOf(f);
+      const albumFolder = stack[stack.length-1];
       const r=row(pad(n+1),clean(f.name),null,async ()=>{
-        const albumName = stack[stack.length-1].name;
-        if(disc !== albumName || tracks !== files){
-          await loadAndInsertAlbum(files, albumName, view, n);
+        // EXACT CHECK: If changing track in the SAME loaded album, bypass animation entirely and play directly!
+        if(currentAlbumPath !== albumFolder.path || tracks !== files){
+          await loadAndInsertAlbum(files, albumFolder.name, albumFolder.path, view, n);
         } else {
           playIdx(n);
         }
@@ -1051,7 +1054,7 @@ function drawLib(){
   }
 
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;disc='';currentAlbumPath='';folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
   lib.append(so);
 }
 
@@ -1071,8 +1074,7 @@ function rowWithThumb(n, t, folderPath, fn){
   const icon = document.createElement('i'); icon.textContent = n;
   const img = document.createElement('img'); img.className = 'thumb';
   
-  // Resolve thumbnail source
-  if(disc === t && coverUrl){
+  if(currentAlbumPath === folderPath && coverUrl){
     img.src = coverUrl;
     img.style.display = 'block';
   } else if(folderArtCache[folderPath]){
@@ -1148,11 +1150,11 @@ $('#pp').onclick=async ()=>{
     say('Choose a CD folder first');
     return;
   }
-  if(stack.length > 1 && (!tracks.length || disc !== stack[stack.length-1].name)){
+  const currentFolder = stack[stack.length-1];
+  if(stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)){
     const files = view.filter(isAudio);
     if(files.length > 0){
-      const albumName = stack[stack.length-1].name;
-      await loadAndInsertAlbum(files, albumName, view, 0);
+      await loadAndInsertAlbum(files, currentFolder.name, currentFolder.path, view, 0);
       return;
     }
   }
@@ -1189,6 +1191,7 @@ $('#eject').onclick=async ()=>{
   tracks=[];
   idx=-1;
   disc='';
+  currentAlbumPath='';
   folderCoverUrl='';
   coverUrl='';
   draw();
@@ -1230,7 +1233,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
