@@ -799,7 +799,6 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
-    // Check for cover.jpg / folder.jpg / any image file in folder
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
@@ -941,13 +940,10 @@ async function openFolder(path){
   }
 }
 
-async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, startIdx = 0){
+// Load CD into tray and setup tracklist without automatically playing audio
+async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0){
   if(isAnimating) return;
-  
-  if(currentAlbumPath === albumPath){
-    playIdx(startIdx);
-    return;
-  }
+  if(currentAlbumPath === albumPath) return;
 
   isAnimating = true;
 
@@ -990,7 +986,6 @@ async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, st
   isAnimating = false;
 
   say(`CD Loaded: ${albumName} - ready to play`);
-  playIdx(startIdx);
 }
 
 function drawLib(){
@@ -1019,7 +1014,7 @@ function drawLib(){
           openFolder(f.path_lower);
 
           if(subAudioFiles.length > 0 && currentAlbumPath !== f.path_lower){
-            await loadAndPlayAlbum(subAudioFiles, f.name, f.path_lower, subEntries, 0);
+            await loadAlbumIntoTray(subAudioFiles, f.name, f.path_lower, subEntries, 0);
           }
         } catch(e) {
           stack.push({path:f.path_lower,name:f.name});
@@ -1032,7 +1027,8 @@ function drawLib(){
       const albumFolder = stack[stack.length-1];
       const r=row(pad(n+1),clean(f.name),null,async ()=>{
         if(currentAlbumPath !== albumFolder.path){
-          await loadAndPlayAlbum(files, albumFolder.name, albumFolder.path, view, n);
+          await loadAlbumIntoTray(files, albumFolder.name, albumFolder.path, view, n);
+          playIdx(n);
         } else {
           playIdx(n);
         }
@@ -1164,7 +1160,8 @@ $('#pp').onclick=async ()=>{
   if(stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)){
     const files = view.filter(isAudio);
     if(files.length > 0){
-      await loadAndPlayAlbum(files, currentFolder.name, currentFolder.path, view, 0);
+      await loadAlbumIntoTray(files, currentFolder.name, currentFolder.path, view, 0);
+      playIdx(0);
       return;
     }
   }
