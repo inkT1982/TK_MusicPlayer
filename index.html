@@ -722,7 +722,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='',isAnimating=false;
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='',isAnimating=false,playSessionId=0;
 
 let linkCache = {};
 async function getLink(path){
@@ -745,7 +745,6 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
-    // 1. Check for standalone cover image in folder
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
@@ -753,7 +752,6 @@ async function getFolderArt(folderPath){
       return linkRes.link;
     }
 
-    // 2. Fallback: check first audio file for embedded MP3 ID3 art
     const audioFiles = subEntries.filter(isAudio);
     if(audioFiles.length > 0){
       const audioLink = await getLink(audioFiles[0].path_lower);
@@ -918,51 +916,16 @@ async function openFolder(path){
   }
 }
 
-async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
+// Unified Album Load & Animation Trigger (Eject old CD if switching, Insert new CD)
+async function loadAndPlayAlbum(audioFiles, albumName, albumPath, folderView, startIdx = 0){
   if(isAnimating) return;
-  isAnimating = true;
-
-  let resolvedCover = '';
-  const imgFile = folderView.find(isImage);
-  if(imgFile){
-    try{
-      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
-      resolvedCover = linkRes.link;
-    }catch(e){}
+  
+  // If clicking the same album already loaded, just play the track instantly with zero animations
+  if(currentAlbumPath === albumPath){
+    playIdx(startIdx);
+    return;
   }
 
-  if(!resolvedCover && audioFiles.length > 0){
-    try{
-      const firstLink = await getLink(audioFiles[0].path_lower);
-      const embedded = await extractEmbeddedArt(firstLink);
-      if(embedded) resolvedCover = embedded;
-    }catch(e){}
-  }
-
-  await preloadImage(resolvedCover);
-
-  tracks = audioFiles;
-  disc = albumName;
-  currentAlbumPath = albumPath;
-  idx = 0;
-  folderCoverUrl = resolvedCover;
-  coverUrl = resolvedCover;
-
-  spinAngle = 0;
-  const rotor = $('#disc-rotor');
-  if(rotor) rotor.style.transform = 'rotate(0deg)';
-
-  draw();
-  const discEl = $('#disc');
-  discEl.classList.add('inserting');
-  await new Promise(r => setTimeout(r, 1100));
-  discEl.classList.remove('inserting');
-  say(`CD Loaded: ${albumName} - ready to play`);
-  isAnimating = false;
-}
-
-async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, startIdx){
-  if(isAnimating) return;
   isAnimating = true;
 
   let resolvedCover = '';
@@ -985,7 +948,9 @@ async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, 
   await preloadImage(resolvedCover);
 
   const discEl = $('#disc');
-  if(tracks.length > 0 && currentAlbumPath !== albumPath){
+  
+  // Eject current CD if a different one is loaded
+  if(tracks.length > 0 && currentAlbumPath && currentAlbumPath !== albumPath){
     stopSpin();
     discEl.classList.add('ejecting');
     await new Promise(r => setTimeout(r, 900));
@@ -1004,14 +969,15 @@ async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, 
   if(rotor) rotor.style.transform = 'rotate(0deg)';
 
   draw();
+
+  // Insert new CD animation
   discEl.classList.add('inserting');
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
   isAnimating = false;
 
-  if(tracks === audioFiles && currentAlbumPath === albumPath) {
-    playIdx(idx);
-  }
+  say(`CD Loaded: ${albumName} - ready to play`);
+  playIdx(startIdx);
 }
 
 function drawLib(){
@@ -1025,37 +991,39 @@ function drawLib(){
   view.forEach(f=>{
     if(f['.tag']==='folder'){
       const r = rowWithThumb('▸', f.name, f.path_lower, async ()=>{
-        if(tracks.length === 0){
-          say('Loading CD…');
-          try {
-            let subJ = await api('files/list_folder',{path:f.path_lower,recursive:false,include_mounted_folders:true});
-            let subEntries = subJ.entries||[];
-            while(subJ.has_more&&subJ.cursor){
-              subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
-              subEntries = subEntries.concat(subJ.entries||[]);
-            }
-            const subAudioFiles = subEntries.filter(isAudio);
-            if(subAudioFiles.length > 0){
-              await loadAlbumOnly(subAudioFiles, f.name, f.path_lower, subEntries);
-            }
-          } catch(e) {}
+        // Fetch subfolder contents to check if it's an album folder
+        try {
+          let subJ = await api('files/list_folder',{path:f.path_lower,recursive:false,include_mounted_folders:true});
+          let subEntries = subJ.entries||[];
+          while(subJ.has_more&&subJ.cursor){
+            subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
+            subEntries = subEntries.concat(subJ.entries||[]);
+          }
+          const subAudioFiles = subEntries.filter(isAudio);
+          
+          stack.push({path:f.path_lower,name:f.name});
+          openFolder(f.path_lower);
+
+          if(subAudioFiles.length > 0 && currentAlbumPath !== f.path_lower){
+            await loadAndPlayAlbum(subAudioFiles, f.name, f.path_lower, subEntries, 0);
+          }
+        } catch(e) {
+          stack.push({path:f.path_lower,name:f.name});
+          openFolder(f.path_lower);
         }
-        stack.push({path:f.path_lower,name:f.name});
-        openFolder(f.path_lower);
       });
       lib.append(r);
     }else if(isAudio(f)){
       const n=files.indexOf(f);
       const albumFolder = stack[stack.length-1];
       const r=row(pad(n+1),clean(f.name),null,async ()=>{
-        // EXACT TRACK CHANGE CHECK: Same album keeps playing without any tray animation
-        if(currentAlbumPath !== albumFolder.path || tracks !== files){
-          await loadAndInsertAlbum(files, albumFolder.name, albumFolder.path, view, n);
+        if(currentAlbumPath !== albumFolder.path){
+          await loadAndPlayAlbum(files, albumFolder.name, albumFolder.path, view, n);
         } else {
           playIdx(n);
         }
       });
-      if(tracks===files&&idx===n)r.classList.add('cur');
+      if(currentAlbumPath === albumFolder.path && tracks === files && idx===n)r.classList.add('cur');
       lib.append(r);
     }
   });
@@ -1073,7 +1041,7 @@ function row(n,t,thumbUrl,fn){
   const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
   const icon = document.createElement('i'); icon.textContent = n;
   const img = document.createElement('img'); img.className = 'thumb';
-  if(thumbUrl){ img.src = thumbUrl; img.style.display = 'block'; }
+  if(thumbUrl){ img.src = thumbUrl; img.style.display = 'block'; icon.style.display = 'none'; }
   const span = document.createElement('span'); span.textContent = t;
   d.append(icon, img, span);
   d.onclick=fn;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}};
@@ -1088,14 +1056,17 @@ function rowWithThumb(n, t, folderPath, fn){
   if(currentAlbumPath === folderPath && coverUrl){
     img.src = coverUrl;
     img.style.display = 'block';
+    icon.style.display = 'none';
   } else if(folderArtCache[folderPath]){
     img.src = folderArtCache[folderPath];
     img.style.display = 'block';
+    icon.style.display = 'none';
   } else if(folderArtCache[folderPath] === undefined){
     getFolderArt(folderPath).then(url=>{
       if(url){
         img.src = url;
         img.style.display = 'block';
+        icon.style.display = 'none';
       }
     });
   }
@@ -1128,25 +1099,39 @@ function draw(){
 }
 
 async function playIdx(i){
+  const sessionId = ++playSessionId;
   if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
   idx=i;
-  draw();say('Reading disc…');
+  draw();
+  say('Reading disc…');
+
+  const trackToPlay = tracks[idx];
+  if(!trackToPlay) return;
+
   try{
-    const link = await getLink(cur().path_lower);
+    const link = await getLink(trackToPlay.path_lower);
+    if(sessionId !== playSessionId) return; // Discard stale request if user clicked another track mid-fetch
+
     A.src = link;
     await A.play();
+    if(sessionId !== playSessionId) return;
+
     startSpin();
-    say(clean(cur().name));
+    say(clean(trackToPlay.name));
     
-    updateMediaSession(clean(cur().name), disc, coverUrl);
+    updateMediaSession(clean(trackToPlay.name), disc, coverUrl);
     if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 
     drawLib();
 
-    if(i + 1 < tracks.length){
-      prefetchLink(tracks[i + 1].path_lower);
+    if(idx + 1 < tracks.length){
+      prefetchLink(tracks[idx + 1].path_lower);
     }
-  }catch(e){say('Error: '+e.message)}
+  }catch(e){
+    if(sessionId === playSessionId) {
+      say('Error: '+e.message);
+    }
+  }
 }
 
 function step(d){
@@ -1165,7 +1150,7 @@ $('#pp').onclick=async ()=>{
   if(stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)){
     const files = view.filter(isAudio);
     if(files.length > 0){
-      await loadAndInsertAlbum(files, currentFolder.name, currentFolder.path, view, 0);
+      await loadAndPlayAlbum(files, currentFolder.name, currentFolder.path, view, 0);
       return;
     }
   }
@@ -1246,6 +1231,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
