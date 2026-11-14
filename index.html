@@ -146,7 +146,7 @@
     overflow: hidden;
   }
 
-  /* Mechanical Insertion & Ejection Animations */
+  /* Mechanical Insertion & Ejection Animations (50% Slower) */
   @keyframes insertDisc {
     0% { transform: translate(140%, -10%) scale(0.85) rotate(70deg); opacity: 0; }
     65% { transform: translate(-4%, 2%) scale(1.03) rotate(-6deg); opacity: 1; }
@@ -161,11 +161,11 @@
   }
 
   .disc.inserting {
-    animation: insertDisc 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
+    animation: insertDisc 1.1s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
   }
 
   .disc.ejecting {
-    animation: ejectDisc 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+    animation: ejectDisc 0.9s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
   }
 
   /* Custom Cover Art Image when present */
@@ -648,9 +648,37 @@
     justify-content: center;
     margin-bottom: 30px;
   }
+
+  /* TV Mode Exit Button */
+  .tv-exit {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: none;
+    place-items: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.2s ease;
+  }
+  body.tv-mode .tv-exit {
+    display: grid;
+  }
+  .tv-exit:hover {
+    background: rgba(255, 90, 31, 0.25);
+    color: var(--text-main);
+    border-color: var(--braun-orange);
+  }
 </style>
 </head>
 <body>
+<button class="tv-exit" id="tv-exit" aria-label="Exit TV Mode"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+
 <main class="deck">
   <div class="top">
     <div class="brand-badge">
@@ -770,6 +798,33 @@ async function api(method,params){
   return await res.json();
 }
 
+async function extractEmbeddedArt(audioUrl){
+  if(!window.jsmediatags)return '';
+  try{
+    const res=await fetch(audioUrl,{headers:{'Range':'bytes=0-300000'}});
+    if(!res.ok)return '';
+    const blob=await res.blob();
+    return await new Promise(resolve=>{
+      window.jsmediatags.read(blob,{
+        onSuccess:tag=>{
+          const pic=tag.tags&&tag.tags.picture;
+          if(pic&&pic.data){
+            let base64='';
+            const bytes=new Uint8Array(pic.data);
+            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
+            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
+          }else{
+            resolve('');
+          }
+        },
+        onError:()=>resolve('')
+      });
+    });
+  }catch(e){
+    return '';
+  }
+}
+
 function updateMediaSession(titleText, albumText, artSrc){
   if('mediaSession' in navigator){
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -813,12 +868,13 @@ async function openFolder(path){
     const audioFiles = view.filter(isAudio);
     const currentFolderName = stack.length > 1 ? stack[stack.length-1].name : '';
 
-    // If this folder contains audio files and is a new album, load it into the tray with animation
-    if(audioFiles.length > 0 && disc !== currentFolderName){
-      await loadAlbum(audioFiles, currentFolderName, view, 0, false);
-    }
-
-    if(tracks.length > 0){
+    // If opening an album folder containing audio files, load the album at the Album Level
+    if(stack.length > 1 && audioFiles.length > 0){
+      if(disc !== currentFolderName){
+        await loadAlbum(audioFiles, currentFolderName, view, false);
+      } else {
+        tracks = audioFiles;
+      }
       say(`CD Loaded: ${disc}`);
     } else {
       say(view.some(f=>f['.tag']==='folder') ? 'Choose a CD folder' : 'Folder is empty');
@@ -832,7 +888,7 @@ async function openFolder(path){
   }
 }
 
-async function loadAlbum(audioFiles, albumName, folderView, startIdx = 0, playImmediately = false){
+async function loadAlbum(audioFiles, albumName, folderView, playImmediately = false){
   const imgFile = folderView.find(isImage);
   let newFolderCover = '';
   if(imgFile){
@@ -842,11 +898,19 @@ async function loadAlbum(audioFiles, albumName, folderView, startIdx = 0, playIm
     }catch(err){}
   }
 
+  if(!newFolderCover && audioFiles.length > 0){
+    try{
+      const firstLink = await getLink(audioFiles[0].path_lower);
+      const embedded = await extractEmbeddedArt(firstLink);
+      if(embedded) newFolderCover = embedded;
+    }catch(e){}
+  }
+
   const discEl = $('#disc');
   
   if(tracks.length > 0 && disc !== albumName){
     discEl.classList.add('ejecting');
-    await new Promise(r => setTimeout(r, 450));
+    await new Promise(r => setTimeout(r, 900));
     discEl.classList.remove('ejecting');
   }
 
@@ -854,7 +918,6 @@ async function loadAlbum(audioFiles, albumName, folderView, startIdx = 0, playIm
   disc = albumName;
   folderCoverUrl = newFolderCover;
   coverUrl = folderCoverUrl;
-  idx = startIdx;
 
   if(playImmediately){
     A.pause();
@@ -864,10 +927,11 @@ async function loadAlbum(audioFiles, albumName, folderView, startIdx = 0, playIm
 
   draw();
   
+  // Trigger slow CD insertion animation at the Album/CD level only
   discEl.classList.add('inserting');
-  setTimeout(() => discEl.classList.remove('inserting'), 600);
+  setTimeout(() => discEl.classList.remove('inserting'), 1100);
 
-  if(playImmediately){
+  if(playImmediately && idx >= 0){
     playIdx(idx);
   }
 }
@@ -891,7 +955,8 @@ function drawLib(){
       const r=row(pad(n+1),clean(f.name),()=>{
         const albumName = stack[stack.length-1].name;
         if(tracks !== files || disc !== albumName){
-          loadAlbum(files, albumName, view, n, true);
+          idx = n;
+          loadAlbum(files, albumName, view, true);
         } else {
           playIdx(n);
         }
@@ -981,10 +1046,10 @@ $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
 
-// TV Mode Toggle
-$('#tv-mode').onclick=e=>{
+// TV Mode Toggle & Exit
+const toggleTvMode = () => {
   const active=document.body.classList.toggle('tv-mode');
-  e.currentTarget.setAttribute('aria-pressed',active);
+  $('#tv-mode').setAttribute('aria-pressed',active);
   if(active && document.documentElement.requestFullscreen){
     document.documentElement.requestFullscreen().catch(()=>{});
   } else if(!active && document.exitFullscreen && document.fullscreenElement){
@@ -992,13 +1057,35 @@ $('#tv-mode').onclick=e=>{
   }
 };
 
+$('#tv-mode').onclick = toggleTvMode;
+$('#tv-exit').onclick = toggleTvMode;
+
+// Eject: If no CD loaded, do nothing. If loaded, eject and return to root folder.
 $('#eject').onclick=async ()=>{
+  if(!tracks.length && !disc) return;
+
   const discEl = $('#disc');
   discEl.classList.add('ejecting');
-  await new Promise(r => setTimeout(r, 450));
+  await new Promise(r => setTimeout(r, 900));
   discEl.classList.remove('ejecting');
 
-  A.pause();stopSpin();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');
+  A.pause();
+  stopSpin();
+  A.removeAttribute('src');
+  tracks=[];
+  idx=-1;
+  disc='';
+  folderCoverUrl='';
+  coverUrl='';
+  draw();
+  $('#time').textContent='--:--';
+  $('#seek').value=0;
+  updateSeekFill();
+  say('Disc ejected');
+
+  // Return to root folder
+  stack = [{path:'', name:'TK_MusicPlayer'}];
+  openFolder('');
 };
 
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
@@ -1030,7 +1117,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
 S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
