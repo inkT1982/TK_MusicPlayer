@@ -869,18 +869,7 @@ async function openFolder(path){
 
     if(stack.length > 1 && audioFiles.length > 0){
       if(disc !== folderName){
-        const discEl = $('#disc');
-        if(tracks.length > 0){
-          stopSpin(); // Freeze rotation immediately upon triggering eject/album switch
-          discEl.classList.add('ejecting');
-          await new Promise(r => setTimeout(r, 900));
-          discEl.classList.remove('ejecting');
-        }
-
-        tracks = audioFiles;
-        disc = folderName;
-        idx = 0;
-
+        // 1. Resolve and preload the NEW album cover art BEFORE ejecting the current CD
         let resolvedCover = '';
         const imgFile = view.find(isImage);
         if(imgFile){
@@ -890,17 +879,29 @@ async function openFolder(path){
           }catch(e){}
         }
 
-        if(!resolvedCover && tracks.length > 0){
+        if(!resolvedCover && audioFiles.length > 0){
           try{
-            const firstLink = await getLink(tracks[0].path_lower);
+            const firstLink = await getLink(audioFiles[0].path_lower);
             const embedded = await extractEmbeddedArt(firstLink);
             if(embedded) resolvedCover = embedded;
           }catch(e){}
         }
 
-        // Preload cover art completely before drawing and starting slide-in animation
         await preloadImage(resolvedCover);
 
+        // 2. Smoothly eject current CD with rotation frozen at click moment
+        const discEl = $('#disc');
+        if(tracks.length > 0){
+          stopSpin();
+          discEl.classList.add('ejecting');
+          await new Promise(r => setTimeout(r, 900));
+          discEl.classList.remove('ejecting');
+        }
+
+        // 3. Assign new tracks and preloaded cover art instantly without pauses
+        tracks = audioFiles;
+        disc = folderName;
+        idx = 0;
         folderCoverUrl = resolvedCover;
         coverUrl = resolvedCover;
 
@@ -1094,7 +1095,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
 S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
