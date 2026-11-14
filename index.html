@@ -663,7 +663,8 @@ async function openFolder(path){
     say(tracks.length?clean(cur().name):'Choose a disc');
     drawLib();
   }catch(e){
-    say(e.message);
+    say('Error: ' + e.message);
+    showLogin('Connection failed: ' + e.message + '. Please check your token and try again.');
   }
 }
 
