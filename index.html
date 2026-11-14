@@ -105,7 +105,7 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay - Distinct Machined Aperture Rim */
+  /* Optical Disc Bay - Machined Aperture Rim */
   .well {
     position: relative;
     background: linear-gradient(145deg, #141417, #070709);
@@ -118,7 +118,6 @@
       inset 0 14px 32px rgba(0, 0, 0, 0.98),
       inset 0 0 0 2px #2c2c32,
       0 1px 0 rgba(255, 255, 255, 0.1);
-    overflow: hidden;
   }
 
   .disc {
@@ -139,7 +138,6 @@
         #64748b 315deg,
         #c8ced6 360deg
       );
-    /* Inset shadow creates realistic tray rim depth directly on the disc edge while keeping center bright */
     box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.85),
       inset 0 0 22px rgba(0, 0, 0, 0.9),
@@ -884,6 +882,46 @@ async function openFolder(path){
   }
 }
 
+// Helper to load CD into tray without playing (used when tray is empty and user selects a CD folder)
+async function loadAlbumOnly(audioFiles, albumName, folderView){
+  let resolvedCover = '';
+  const imgFile = folderView.find(isImage);
+  if(imgFile){
+    try{
+      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+      resolvedCover = linkRes.link;
+    }catch(e){}
+  }
+
+  if(!resolvedCover && audioFiles.length > 0){
+    try{
+      const firstLink = await getLink(audioFiles[0].path_lower);
+      const embedded = await extractEmbeddedArt(firstLink);
+      if(embedded) resolvedCover = embedded;
+    }catch(e){}
+  }
+
+  await preloadImage(resolvedCover);
+
+  tracks = audioFiles;
+  disc = albumName;
+  idx = 0;
+  folderCoverUrl = resolvedCover;
+  coverUrl = resolvedCover;
+
+  spinAngle = 0;
+  const rotor = $('#disc-rotor');
+  if(rotor) rotor.style.transform = 'rotate(0deg)';
+
+  draw();
+  const discEl = $('#disc');
+  discEl.classList.add('inserting');
+  await new Promise(r => setTimeout(r, 1100));
+  discEl.classList.remove('inserting');
+  say(`CD Loaded: ${albumName} - ready to play`);
+}
+
+// Helper for swapping/inserting when hitting play or selecting a track
 async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
@@ -927,7 +965,6 @@ async function loadAndInsertAlbum(audioFiles, albumName, folderView, startIdx){
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
 
-  // Verify user didn't eject mid-animation before playing
   if(tracks === audioFiles && disc === albumName) {
     playIdx(idx);
   }
@@ -943,7 +980,24 @@ function drawLib(){
 
   view.forEach(f=>{
     if(f['.tag']==='folder'){
-      lib.append(row('▸',f.name,()=>{
+      lib.append(row('▸',f.name,async ()=>{
+        // IF TRAY IS EMPTY: Automatically slide in this CD when selected!
+        if(tracks.length === 0){
+          say('Loading CD…');
+          try {
+            let subJ = await api('files/list_folder',{path:f.path_lower,recursive:false,include_mounted_folders:true});
+            let subEntries = subJ.entries||[];
+            while(subJ.has_more&&subJ.cursor){
+              subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
+              subEntries = subEntries.concat(subJ.entries||[]);
+            }
+            const subAudioFiles = subEntries.filter(isAudio);
+            if(subAudioFiles.length > 0){
+              await loadAlbumOnly(subAudioFiles, f.name, subEntries);
+            }
+          } catch(e) {}
+        }
+        // IF TRAY ALREADY HAS A CD LOADED: Do nothing to the tray; just navigate in to browse!
         stack.push({path:f.path_lower,name:f.name});
         openFolder(f.path_lower);
       }));
@@ -1115,6 +1169,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
 S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
