@@ -125,8 +125,6 @@
     position: relative;
     aspect-ratio: 1;
     border-radius: 50%;
-    transform: translateZ(0);
-    will-change: transform;
     background:
       radial-gradient(circle at center, transparent 28%, rgba(255, 255, 255, 0.04) 29%, transparent 30%, rgba(255, 255, 255, 0.03) 45%, transparent 46%, rgba(255, 255, 255, 0.04) 62%, transparent 63%),
       conic-gradient(
@@ -142,22 +140,31 @@
         #c8ced6 360deg
       );
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
-    transition: filter 0.35s ease, opacity 0.35s ease, background 0.3s ease;
+    transition: filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
+  }
+
+  /* Rotor for independent rotation without disrupting slide animations */
+  .disc-rotor {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   /* Mechanical Animations (50% Slower) */
   @keyframes insertDisc {
-    0% { transform: translate(140%, -10%) scale(0.85) rotate(70deg); opacity: 0; }
-    65% { transform: translate(-4%, 2%) scale(1.03) rotate(-6deg); opacity: 1; }
-    85% { transform: translate(2%, -1%) scale(0.98) rotate(2deg); }
+    0% { transform: translate(140%, -10%) scale(0.85) rotate(20deg); opacity: 0; }
+    65% { transform: translate(-4%, 2%) scale(1.03) rotate(-2deg); opacity: 1; }
+    85% { transform: translate(2%, -1%) scale(0.98) rotate(1deg); }
     100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
   }
 
   @keyframes ejectDisc {
     0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
-    35% { transform: translate(6%, -2%) scale(1.02) rotate(4deg); }
-    100% { transform: translate(-140%, 10%) scale(0.85) rotate(-70deg); opacity: 0; }
+    35% { transform: translate(6%, -2%) scale(1.02) rotate(2deg); }
+    100% { transform: translate(-140%, 10%) scale(0.85) rotate(-20deg); opacity: 0; }
   }
 
   .disc.inserting {
@@ -169,7 +176,7 @@
   }
 
   /* Custom Cover Art Image when present */
-  .disc .cover-art {
+  .disc-rotor .cover-art {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -198,6 +205,7 @@
     );
     mix-blend-mode: overlay;
     pointer-events: none;
+    z-index: 2;
   }
 
   /* Iridescent Optical Sheen (default disc) */
@@ -627,11 +635,11 @@
 
   body.tv-mode .lib,
   body.tv-mode .btns,
-  body.tv-mode .tools,
   body.tv-mode .lcd,
   body.tv-mode input[type=range],
   body.tv-mode .top small,
-  body.tv-mode .brand-badge span {
+  body.tv-mode .brand-badge span,
+  body.tv-mode .tools .mini:not(#tv-mode) {
     display: none !important;
   }
 
@@ -649,36 +657,14 @@
     margin-bottom: 30px;
   }
 
-  /* TV Mode Exit Button */
-  .tv-exit {
-    position: fixed;
-    top: 25px;
-    right: 25px;
-    background: rgba(255, 255, 255, 0.15);
-    color: var(--text-main);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: none;
-    place-items: center;
-    cursor: pointer;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    transition: all 0.2s ease;
-  }
-  body.tv-mode .tv-exit {
-    display: grid !important;
-  }
-  .tv-exit:hover {
-    background: rgba(255, 90, 31, 0.3);
-    border-color: var(--braun-orange);
+  body.tv-mode .tools {
+    border-top: none !important;
+    justify-content: center !important;
+    padding-top: 10px !important;
   }
 </style>
 </head>
 <body>
-<button class="tv-exit" id="tv-exit" aria-label="Exit TV Mode"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
-
 <main class="deck">
   <div class="top">
     <div class="brand-badge">
@@ -689,9 +675,11 @@
   </div>
   <div class="well">
     <div class="disc empty" id="disc">
-      <img class="cover-art" id="disc-art" alt="Album Cover">
-      <div class="lab" id="lab"></div>
-      <div class="hub"></div>
+      <div class="disc-rotor" id="disc-rotor">
+        <img class="cover-art" id="disc-art" alt="Album Cover">
+        <div class="lab" id="lab"></div>
+        <div class="hub"></div>
+      </div>
     </div>
   </div>
   <div class="lcd">
@@ -736,7 +724,7 @@ function prefetchLink(path){
   }).catch(()=>{});
 }
 
-// JS Rotation Engine for iOS PWA compatibility
+// JS Rotation Engine using rotor to preserve spin angle on slide animations
 let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
 function animateSpin(timestamp){
   if(!isSpinning)return;
@@ -744,8 +732,8 @@ function animateSpin(timestamp){
   const delta=timestamp-lastTime;
   lastTime=timestamp;
   spinAngle=(spinAngle+delta*0.06)%360;
-  const d=$('#disc');
-  if(d)d.style.transform=`rotate(${spinAngle}deg)`;
+  const rotor=$('#disc-rotor');
+  if(rotor)rotor.style.transform=`rotate(${spinAngle}deg)`;
   spinReq=requestAnimationFrame(animateSpin);
 }
 function startSpin(){
@@ -825,6 +813,17 @@ async function extractEmbeddedArt(audioUrl){
   }
 }
 
+// Helper to fully preload an image into memory before rendering/animating
+function preloadImage(url){
+  if(!url)return Promise.resolve();
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = resolve;
+    img.src = url;
+  });
+}
+
 function updateMediaSession(titleText, albumText, artSrc){
   if('mediaSession' in navigator){
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -881,24 +880,28 @@ async function openFolder(path){
         disc = folderName;
         idx = 0;
 
+        let resolvedCover = '';
         const imgFile = view.find(isImage);
         if(imgFile){
           try{
             const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
-            folderCoverUrl = linkRes.link;
-          }catch(e){ folderCoverUrl = ''; }
-        } else {
-          folderCoverUrl = '';
+            resolvedCover = linkRes.link;
+          }catch(e){}
         }
-        coverUrl = folderCoverUrl;
 
-        if(!folderCoverUrl && tracks.length > 0){
+        if(!resolvedCover && tracks.length > 0){
           try{
             const firstLink = await getLink(tracks[0].path_lower);
             const embedded = await extractEmbeddedArt(firstLink);
-            if(embedded) coverUrl = embedded;
+            if(embedded) resolvedCover = embedded;
           }catch(e){}
         }
+
+        // Preload cover art completely before drawing and starting slide-in animation
+        await preloadImage(resolvedCover);
+
+        folderCoverUrl = resolvedCover;
+        coverUrl = resolvedCover;
 
         draw();
         discEl.classList.add('inserting');
@@ -1027,15 +1030,12 @@ $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
 
-// TV Mode Toggle & Exit
-const toggleTvMode = () => {
+// TV Mode Toggle (stays visible in toolbar to toggle back)
+$('#tv-mode').onclick = () => {
   document.body.classList.toggle('tv-mode');
   const active = document.body.classList.contains('tv-mode');
   $('#tv-mode').setAttribute('aria-pressed', active);
 };
-
-$('#tv-mode').onclick = toggleTvMode;
-$('#tv-exit').onclick = toggleTvMode;
 
 // Eject: If no CD loaded, do nothing. If loaded, eject and return to root folder.
 $('#eject').onclick=async ()=>{
