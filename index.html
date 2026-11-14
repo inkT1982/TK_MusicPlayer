@@ -105,19 +105,19 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay - Expanded Size */
+  /* Optical Disc Bay - Distinct Machined Aperture Rim */
   .well {
     position: relative;
-    background: var(--well-bg);
+    background: linear-gradient(145deg, #141417, #070709);
     border-radius: 50%;
-    padding: 10px;
+    padding: 12px;
     width: 98%;
     max-width: 390px;
     margin: 0 auto 20px;
     box-shadow:
-      inset 0 10px 24px rgba(0, 0, 0, 0.95),
-      inset 0 0 0 2px #050506,
-      0 1px 0 rgba(255, 255, 255, 0.08);
+      inset 0 14px 32px rgba(0, 0, 0, 0.98),
+      inset 0 0 0 2px #2c2c32,
+      0 1px 0 rgba(255, 255, 255, 0.1);
     overflow: hidden;
   }
 
@@ -236,7 +236,7 @@
 
   /* Empty Tray State */
   .disc.empty {
-    background: radial-gradient(circle at center, #161619 0%, #0b0b0d 65%, #050506 100%);
+    background: radial-gradient(circle at center, #1b1b20 0%, #0d0d10 65%, #050506 100%);
     box-shadow: inset 0 12px 28px rgba(0, 0, 0, 0.98), 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
@@ -817,13 +817,14 @@ async function extractEmbeddedArt(audioUrl){
   }
 }
 
-// Helper to fully preload an image into memory before rendering/animating
+// Bulletproof image preload with 1.5s timeout so loading never hangs
 function preloadImage(url){
   if(!url)return Promise.resolve();
   return new Promise(resolve=>{
     const img = new Image();
-    img.onload = resolve;
-    img.onerror = resolve;
+    const timer = setTimeout(resolve, 1500);
+    img.onload = () => { clearTimeout(timer); resolve(); };
+    img.onerror = () => { clearTimeout(timer); resolve(); };
     img.src = url;
   });
 }
@@ -1117,7 +1118,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
   
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
