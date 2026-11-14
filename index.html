@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="AppIcon.png?v=2">
 <title>TK-100 Compact Disc Player</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
     --chassis-bg: #18181a;
@@ -122,8 +121,7 @@
     position: relative;
     aspect-ratio: 1;
     border-radius: 50%;
-    transform: translateZ(0);
-    will-change: transform;
+    animation: spin 2.6s linear infinite paused;
     background:
       radial-gradient(circle at center, transparent 28%, rgba(255, 255, 255, 0.04) 29%, transparent 30%, rgba(255, 255, 255, 0.03) 45%, transparent 46%, rgba(255, 255, 255, 0.04) 62%, transparent 63%),
       conic-gradient(
@@ -197,6 +195,10 @@
     pointer-events: none;
   }
 
+  .disc.on {
+    animation-play-state: running;
+  }
+
   /* Empty Tray State - Matte Dark Transport Well */
   .disc.empty {
     background: radial-gradient(circle at center, #161619 0%, #0b0b0d 65%, #050506 100%);
@@ -226,8 +228,8 @@
       inset 0 1px 3px rgba(0, 0, 0, 0.8);
   }
   .disc.has-art .lab {
-    background: rgba(20, 20, 22, 0.4);
-    backdrop-filter: blur(2px);
+    background: rgba(20, 20, 22, 0.85);
+    backdrop-filter: blur(4px);
   }
   .disc.empty .lab {
     background: radial-gradient(circle at 30% 30%, #1a1a1d, #0d0d0f);
@@ -254,6 +256,14 @@
     inset: 34%;
     border-radius: 50%;
     background: #050506;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .disc { animation: none; }
   }
 
   /* OLED Telemetry Screen */
@@ -604,7 +614,7 @@
   <div class="well">
     <div class="disc empty" id="disc">
       <img class="cover-art" id="disc-art" alt="Album Cover">
-      <div class="lab" id="lab"></div>
+      <div class="lab" id="lab">No disc</div>
       <div class="hub"></div>
     </div>
   </div>
@@ -632,30 +642,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
-
-// JS Rotation Engine for iOS PWA compatibility
-let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
-function animateSpin(timestamp){
-  if(!isSpinning)return;
-  if(!lastTime)lastTime=timestamp;
-  const delta=timestamp-lastTime;
-  lastTime=timestamp;
-  spinAngle=(spinAngle+delta*0.06)%360;
-  const d=$('#disc');
-  if(d)d.style.transform=`rotate(${spinAngle}deg)`;
-  spinReq=requestAnimationFrame(animateSpin);
-}
-function startSpin(){
-  if(isSpinning)return;
-  isSpinning=true;
-  lastTime=null;
-  spinReq=requestAnimationFrame(animateSpin);
-}
-function stopSpin(){
-  isSpinning=false;
-  if(spinReq){cancelAnimationFrame(spinReq);spinReq=null;}
-}
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,coverUrl='';
 
 const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
 const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
@@ -696,44 +683,6 @@ async function api(method,params){
   return await res.json();
 }
 
-async function extractEmbeddedArt(audioUrl){
-  if(!window.jsmediatags)return '';
-  try{
-    const res=await fetch(audioUrl,{headers:{'Range':'bytes=0-300000'}});
-    if(!res.ok)return '';
-    const blob=await res.blob();
-    return await new Promise(resolve=>{
-      window.jsmediatags.read(blob,{
-        onSuccess:tag=>{
-          const pic=tag.tags&&tag.tags.picture;
-          if(pic&&pic.data){
-            let base64='';
-            const bytes=new Uint8Array(pic.data);
-            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
-            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
-          }else{
-            resolve('');
-          }
-        },
-        onError:()=>resolve('')
-      });
-    });
-  }catch(e){
-    return '';
-  }
-}
-
-function updateMediaSession(titleText, albumText, artSrc){
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: titleText,
-      artist: 'TK-100 Compact Disc',
-      album: albumText,
-      artwork: artSrc ? [{ src: artSrc, sizes: '512x512', type: 'image/jpeg' }] : []
-    });
-  }
-}
-
 function showLogin(note){
   $('#lib').innerHTML=`<h2>Connect to Dropbox</h2>
   <label for="tok">Access Token</label>
@@ -763,43 +712,28 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
-    if(stack.length > 1){
-      const imgFile=view.find(isImage);
-      if(imgFile){
-        try{
-          const linkRes=await api('files/get_temporary_link',{path:imgFile.path_lower});
-          folderCoverUrl=linkRes.link;
-        }catch(err){
-          folderCoverUrl='';
-        }
-      }else{
-        folderCoverUrl='';
+    // Check if there is an image in this folder to use as disc cover art
+    const imgFile=view.find(isImage);
+    if(imgFile){
+      try{
+        const linkRes=await api('files/get_temporary_link',{path:imgFile.path_lower});
+        coverUrl=linkRes.link;
+      }catch(err){
+        coverUrl='';
       }
-      coverUrl=folderCoverUrl;
-
-      const audioFiles=view.filter(isAudio);
-      if(audioFiles.length>0){
-        tracks=audioFiles;
-        disc=stack[stack.length-1].name;
-        idx=0;
-        A.pause();
-        A.removeAttribute('src');
-
-        if(!folderCoverUrl){
-          try{
-            const firstLink=await api('files/get_temporary_link',{path:tracks[0].path_lower});
-            const embedded=await extractEmbeddedArt(firstLink.link);
-            if(embedded)coverUrl=embedded;
-          }catch(e){}
-        }
-      } else {
-        tracks=[];
-        disc='';
-        idx=-1;
-      }
-    } else {
-      folderCoverUrl='';
+    }else{
       coverUrl='';
+    }
+
+    // Auto-load album audio files as tracks when opening a folder and reset deck state for new CD
+    const audioFiles=view.filter(isAudio);
+    if(audioFiles.length>0){
+      tracks=audioFiles;
+      disc=stack[stack.length-1].name;
+      idx=0;
+      A.pause();
+      A.removeAttribute('src');
+    } else {
       tracks=[];
       disc='';
       idx=-1;
@@ -831,7 +765,7 @@ function drawLib(){
   });
   if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;coverUrl='';draw();showLogin()};
   lib.append(so);
 }
 
@@ -857,7 +791,7 @@ function draw(){
     discEl.classList.remove('has-art');
   }
 
-  $('#lab').textContent='';
+  $('#lab').textContent=tracks.length>0?disc:(coverUrl?'Cover Art':'No disc');
   $('#trk').textContent=tracks.length>0?`T${pad(idx+1)}/${pad(tracks.length)}`:'T--/--';
   $('#seek').disabled=!tracks.length;
   updateSeekFill();
@@ -865,17 +799,23 @@ function draw(){
 
 async function playIdx(i){
   if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
-  idx=i;
-  draw();say('Reading disc…');
+  idx=i;draw();say('Reading disc…');
   try{
     const j=await api('files/get_temporary_link',{path:cur().path_lower});
     A.src=j.link;
     await A.play();
-    startSpin();
     say(clean(cur().name));
     
-    updateMediaSession(clean(cur().name), disc, coverUrl);
-    if('mediaSession' in navigator)navigator.mediaSession.playbackState = 'playing';
+    // Update Media Session Metadata for Lock Screen & Control Center
+    if('mediaSession' in navigator){
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: clean(cur().name),
+        artist: 'TK-100 Compact Disc',
+        album: disc,
+        artwork: coverUrl ? [{ src: coverUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    }
 
     drawLib();
   }catch(e){say('Error: '+e.message)}
@@ -885,33 +825,32 @@ function step(d){
   if(!tracks.length)return;
   if(shuffle&&tracks.length>1){let n;do{n=Math.floor(Math.random()*tracks.length)}while(n===idx);playIdx(n);return}
   const n=idx+d;
-  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();stopSpin();A.currentTime=0;say('End of disc')}
+  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();A.currentTime=0;say('End of disc')}
 }
 
 $('#pp').onclick=()=>{
   if(!tracks.length){say('Choose a CD folder first');return}
   if(!A.paused){
     A.pause();
-    stopSpin();
   } else {
     playIdx(Math.max(idx,0));
   }
 };
 $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
-$('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
+$('#stop').onclick=()=>{A.pause();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
-$('#eject').onclick=()=>{A.pause();stopSpin();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
+$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
 A.onplay=()=>{
-  startSpin();
+  $('#disc').classList.add('on');
   $('#ppi').innerHTML=IC.pause;
   $('#pp').setAttribute('aria-label','Pause');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 };
 A.onpause=()=>{
-  stopSpin();
+  $('#disc').classList.remove('on');
   $('#ppi').innerHTML=IC.play;
   $('#pp').setAttribute('aria-label','Play');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -931,6 +870,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
