@@ -745,6 +745,7 @@ async function getFolderArt(folderPath){
     let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
     let subEntries = subJ.entries||[];
     
+    // 1. Check for standalone cover image in folder
     const imgFile = subEntries.find(isImage);
     if(imgFile){
       const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
@@ -752,6 +753,7 @@ async function getFolderArt(folderPath){
       return linkRes.link;
     }
 
+    // 2. Fallback: check first audio file for embedded MP3 ID3 art
     const audioFiles = subEntries.filter(isAudio);
     if(audioFiles.length > 0){
       const audioLink = await getLink(audioFiles[0].path_lower);
@@ -829,29 +831,22 @@ async function api(method,params){
 
 async function extractEmbeddedArt(audioUrl){
   if(!window.jsmediatags)return '';
-  try{
-    const res=await fetch(audioUrl,{headers:{'Range':'bytes=0-300000'}});
-    if(!res.ok)return '';
-    const blob=await res.blob();
-    return await new Promise(resolve=>{
-      window.jsmediatags.read(blob,{
-        onSuccess:tag=>{
-          const pic=tag.tags&&tag.tags.picture;
-          if(pic&&pic.data){
-            let base64='';
-            const bytes=new Uint8Array(pic.data);
-            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
-            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
-          }else{
-            resolve('');
-          }
-        },
-        onError:()=>resolve('')
-      });
+  return new Promise(resolve=>{
+    window.jsmediatags.read(audioUrl,{
+      onSuccess:tag=>{
+        const pic=tag.tags&&tag.tags.picture;
+        if(pic&&pic.data){
+          let base64='';
+          const bytes=new Uint8Array(pic.data);
+          for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
+          resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
+        }else{
+          resolve('');
+        }
+      },
+      onError:()=>resolve('')
     });
-  }catch(e){
-    return '';
-  }
+  });
 }
 
 function preloadImage(url){
@@ -923,7 +918,6 @@ async function openFolder(path){
   }
 }
 
-// CD Slide-in when tray is empty
 async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
   if(isAnimating) return;
   isAnimating = true;
@@ -967,7 +961,6 @@ async function loadAlbumOnly(audioFiles, albumName, albumPath, folderView){
   isAnimating = false;
 }
 
-// CD Eject + Slide-in when swapping albums
 async function loadAndInsertAlbum(audioFiles, albumName, albumPath, folderView, startIdx){
   if(isAnimating) return;
   isAnimating = true;
@@ -1055,7 +1048,7 @@ function drawLib(){
       const n=files.indexOf(f);
       const albumFolder = stack[stack.length-1];
       const r=row(pad(n+1),clean(f.name),null,async ()=>{
-        // AUDIT CHECK: If clicking a track in the SAME loaded album, bypass animations entirely!
+        // EXACT TRACK CHANGE CHECK: Same album keeps playing without any tray animation
         if(currentAlbumPath !== albumFolder.path || tracks !== files){
           await loadAndInsertAlbum(files, albumFolder.name, albumFolder.path, view, n);
         } else {
@@ -1253,6 +1246,7 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
+
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
