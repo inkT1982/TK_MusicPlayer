@@ -810,7 +810,20 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
-    say(tracks.length?`CD Loaded: ${disc}`:(view.some(f=>f['.tag']==='folder')?'Choose a CD folder':'Folder is empty'));
+    const audioFiles = view.filter(isAudio);
+    const currentFolderName = stack.length > 1 ? stack[stack.length-1].name : '';
+
+    // If this folder contains audio files and is a new album, load it into the tray with animation
+    if(audioFiles.length > 0 && disc !== currentFolderName){
+      await loadAlbum(audioFiles, currentFolderName, view, 0, false);
+    }
+
+    if(tracks.length > 0){
+      say(`CD Loaded: ${disc}`);
+    } else {
+      say(view.some(f=>f['.tag']==='folder') ? 'Choose a CD folder' : 'Folder is empty');
+    }
+
     drawLib();
     draw();
   }catch(e){
@@ -819,7 +832,7 @@ async function openFolder(path){
   }
 }
 
-async function selectAlbumAndPlay(audioFiles, albumName, folderView, startIdx = 0){
+async function loadAlbum(audioFiles, albumName, folderView, startIdx = 0, playImmediately = false){
   const imgFile = folderView.find(isImage);
   let newFolderCover = '';
   if(imgFile){
@@ -831,7 +844,6 @@ async function selectAlbumAndPlay(audioFiles, albumName, folderView, startIdx = 
 
   const discEl = $('#disc');
   
-  // If a CD is already playing/loaded, trigger eject animation to the left first
   if(tracks.length > 0 && disc !== albumName){
     discEl.classList.add('ejecting');
     await new Promise(r => setTimeout(r, 450));
@@ -844,17 +856,20 @@ async function selectAlbumAndPlay(audioFiles, albumName, folderView, startIdx = 
   coverUrl = folderCoverUrl;
   idx = startIdx;
 
-  A.pause();
-  stopSpin();
-  A.removeAttribute('src');
+  if(playImmediately){
+    A.pause();
+    stopSpin();
+    A.removeAttribute('src');
+  }
 
   draw();
   
-  // Trigger insert/slide-in animation from right with click-in effect
   discEl.classList.add('inserting');
   setTimeout(() => discEl.classList.remove('inserting'), 600);
 
-  playIdx(idx);
+  if(playImmediately){
+    playIdx(idx);
+  }
 }
 
 function drawLib(){
@@ -875,14 +890,17 @@ function drawLib(){
       const n=files.indexOf(f);
       const r=row(pad(n+1),clean(f.name),()=>{
         const albumName = stack[stack.length-1].name;
-        selectAlbumAndPlay(files, albumName, view, n);
+        if(tracks !== files || disc !== albumName){
+          loadAlbum(files, albumName, view, n, true);
+        } else {
+          playIdx(n);
+        }
       });
       if(tracks===files&&idx===n)r.classList.add('cur');
       lib.append(r);
     }
   });
 
-  // If this folder has subfolders OR audio files, it's valid. If completely empty:
   if(!hasSubfolders && files.length === 0) {
     lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   }
