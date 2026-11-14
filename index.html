@@ -118,6 +118,7 @@
       inset 0 10px 24px rgba(0, 0, 0, 0.95),
       inset 0 0 0 2px #050506,
       0 1px 0 rgba(255, 255, 255, 0.08);
+    overflow: hidden;
   }
 
   .disc {
@@ -143,6 +144,28 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
     transition: filter 0.35s ease, opacity 0.35s ease, background 0.3s ease;
     overflow: hidden;
+  }
+
+  /* Mechanical Insertion & Ejection Animations */
+  @keyframes insertDisc {
+    0% { transform: translate(140%, -10%) scale(0.85) rotate(70deg); opacity: 0; }
+    65% { transform: translate(-4%, 2%) scale(1.03) rotate(-6deg); opacity: 1; }
+    85% { transform: translate(2%, -1%) scale(0.98) rotate(2deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  @keyframes ejectDisc {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+    35% { transform: translate(6%, -2%) scale(1.02) rotate(4deg); }
+    100% { transform: translate(-140%, 10%) scale(0.85) rotate(-70deg); opacity: 0; }
+  }
+
+  .disc.inserting {
+    animation: insertDisc 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
+  }
+
+  .disc.ejecting {
+    animation: ejectDisc 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
   }
 
   /* Custom Cover Art Image when present */
@@ -747,33 +770,6 @@ async function api(method,params){
   return await res.json();
 }
 
-async function extractEmbeddedArt(audioUrl){
-  if(!window.jsmediatags)return '';
-  try{
-    const res=await fetch(audioUrl,{headers:{'Range':'bytes=0-300000'}});
-    if(!res.ok)return '';
-    const blob=await res.blob();
-    return await new Promise(resolve=>{
-      window.jsmediatags.read(blob,{
-        onSuccess:tag=>{
-          const pic=tag.tags&&tag.tags.picture;
-          if(pic&&pic.data){
-            let base64='';
-            const bytes=new Uint8Array(pic.data);
-            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
-            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
-          }else{
-            resolve('');
-          }
-        },
-        onError:()=>resolve('')
-      });
-    });
-  }catch(e){
-    return '';
-  }
-}
-
 function updateMediaSession(titleText, albumText, artSrc){
   if('mediaSession' in navigator){
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -804,7 +800,6 @@ function showLogin(note){
 async function openFolder(path){
   say('Reading…');
   try{
-    linkCache = {}; // Reset link cache on folder change
     let j=await api('files/list_folder',{path:path,recursive:false,include_mounted_folders:true});
     let entries=j.entries||[];
     while(j.has_more&&j.cursor){
@@ -815,48 +810,6 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
-    if(stack.length > 1){
-      const imgFile=view.find(isImage);
-      if(imgFile){
-        try{
-          const linkRes=await api('files/get_temporary_link',{path:imgFile.path_lower});
-          folderCoverUrl=linkRes.link;
-        }catch(err){
-          folderCoverUrl='';
-        }
-      }else{
-        folderCoverUrl='';
-      }
-      coverUrl=folderCoverUrl;
-
-      const audioFiles=view.filter(isAudio);
-      if(audioFiles.length>0){
-        tracks=audioFiles;
-        disc=stack[stack.length-1].name;
-        idx=0;
-        A.pause();
-        A.removeAttribute('src');
-
-        if(!folderCoverUrl){
-          try{
-            const firstLink=await api('files/get_temporary_link',{path:tracks[0].path_lower});
-            const embedded=await extractEmbeddedArt(firstLink.link);
-            if(embedded)coverUrl=embedded;
-          }catch(e){}
-        }
-      } else {
-        tracks=[];
-        disc='';
-        idx=-1;
-      }
-    } else {
-      folderCoverUrl='';
-      coverUrl='';
-      tracks=[];
-      disc='';
-      idx=-1;
-    }
-
     say(tracks.length?`CD Loaded: ${disc}`:(view.some(f=>f['.tag']==='folder')?'Choose a CD folder':'Folder is empty'));
     drawLib();
     draw();
@@ -866,22 +819,74 @@ async function openFolder(path){
   }
 }
 
+async function selectAlbumAndPlay(audioFiles, albumName, folderView, startIdx = 0){
+  const imgFile = folderView.find(isImage);
+  let newFolderCover = '';
+  if(imgFile){
+    try{
+      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+      newFolderCover = linkRes.link;
+    }catch(err){}
+  }
+
+  const discEl = $('#disc');
+  
+  // If a CD is already playing/loaded, trigger eject animation to the left first
+  if(tracks.length > 0 && disc !== albumName){
+    discEl.classList.add('ejecting');
+    await new Promise(r => setTimeout(r, 450));
+    discEl.classList.remove('ejecting');
+  }
+
+  tracks = audioFiles;
+  disc = albumName;
+  folderCoverUrl = newFolderCover;
+  coverUrl = folderCoverUrl;
+  idx = startIdx;
+
+  A.pause();
+  stopSpin();
+  A.removeAttribute('src');
+
+  draw();
+  
+  // Trigger insert/slide-in animation from right with click-in effect
+  discEl.classList.add('inserting');
+  setTimeout(() => discEl.classList.remove('inserting'), 600);
+
+  playIdx(idx);
+}
+
 function drawLib(){
   const lib=$('#lib');
   lib.innerHTML=`<h2>${stack.length===1&&!tracks.length?'Choose a CD':stack.map(s=>s.name).join(' / ')}</h2>`;
   if(stack.length>1)lib.append(row('↑','Back',()=>{stack.pop();openFolder(stack[stack.length-1].path)}));
+  
   const files=view.filter(isAudio);
+  const hasSubfolders = view.some(f=>f['.tag']==='folder');
+
   view.forEach(f=>{
     if(f['.tag']==='folder'){
-      lib.append(row('▸',f.name,()=>{stack.push({path:f.path_lower,name:f.name});idx=-1;openFolder(f.path_lower)}));
+      lib.append(row('▸',f.name,()=>{
+        stack.push({path:f.path_lower,name:f.name});
+        openFolder(f.path_lower);
+      }));
     }else if(isAudio(f)){
       const n=files.indexOf(f);
-      const r=row(pad(n+1),clean(f.name),()=>{tracks=files;disc=stack[stack.length-1].name;idx=n;playIdx(n)});
+      const r=row(pad(n+1),clean(f.name),()=>{
+        const albumName = stack[stack.length-1].name;
+        selectAlbumAndPlay(files, albumName, view, n);
+      });
       if(tracks===files&&idx===n)r.classList.add('cur');
       lib.append(r);
     }
   });
-  if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
+
+  // If this folder has subfolders OR audio files, it's valid. If completely empty:
+  if(!hasSubfolders && files.length === 0) {
+    lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
+  }
+
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
   so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
   lib.append(so);
@@ -931,7 +936,6 @@ async function playIdx(i){
 
     drawLib();
 
-    // Automatically pre-fetch the next track in the background so it's cached before ended fires
     if(i + 1 < tracks.length){
       prefetchLink(tracks[i + 1].path_lower);
     }
@@ -970,7 +974,15 @@ $('#tv-mode').onclick=e=>{
   }
 };
 
-$('#eject').onclick=()=>{A.pause();stopSpin();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
+$('#eject').onclick=async ()=>{
+  const discEl = $('#disc');
+  discEl.classList.add('ejecting');
+  await new Promise(r => setTimeout(r, 450));
+  discEl.classList.remove('ejecting');
+
+  A.pause();stopSpin();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');
+};
+
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
 A.onplay=()=>{
