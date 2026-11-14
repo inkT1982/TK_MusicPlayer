@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="AppIcon.png?v=2">
 <title>TK-100 Compact Disc Player</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
     --chassis-bg: #18181a;
@@ -642,7 +643,7 @@
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,coverUrl='';
+let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='';
 
 const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
 const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
@@ -683,6 +684,45 @@ async function api(method,params){
   return await res.json();
 }
 
+// Extract embedded ID3 / audio tag cover art from the beginning of the file stream
+async function extractEmbeddedArt(audioUrl){
+  if(!window.jsmediatags)return '';
+  try{
+    const res=await fetch(audioUrl,{headers:{'Range':'bytes=0-300000'}});
+    if(!res.ok)return '';
+    const blob=await res.blob();
+    return await new Promise(resolve=>{
+      window.jsmediatags.read(blob,{
+        onSuccess:tag=>{
+          const pic=tag.tags&&tag.tags.picture;
+          if(pic&&pic.data){
+            let base64='';
+            const bytes=new Uint8Array(pic.data);
+            for(let i=0;i<bytes.byteLength;i++)base64+=String.fromCharCode(bytes[i]);
+            resolve(`data:${pic.format||'image/jpeg'};base64,${window.btoa(base64)}`);
+          }else{
+            resolve('');
+          }
+        },
+        onError:()=>resolve('')
+      });
+    });
+  }catch(e){
+    return '';
+  }
+}
+
+function updateMediaSession(titleText, albumText, artSrc){
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: titleText,
+      artist: 'TK-100 Compact Disc',
+      album: albumText,
+      artwork: artSrc ? [{ src: artSrc, sizes: '512x512', type: 'image/jpeg' }] : []
+    });
+  }
+}
+
 function showLogin(note){
   $('#lib').innerHTML=`<h2>Connect to Dropbox</h2>
   <label for="tok">Access Token</label>
@@ -712,18 +752,19 @@ async function openFolder(path){
       .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
       .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
     
-    // Check if there is an image in this folder to use as disc cover art
+    // Check if there is a standalone image file in this folder
     const imgFile=view.find(isImage);
     if(imgFile){
       try{
         const linkRes=await api('files/get_temporary_link',{path:imgFile.path_lower});
-        coverUrl=linkRes.link;
+        folderCoverUrl=linkRes.link;
       }catch(err){
-        coverUrl='';
+        folderCoverUrl='';
       }
     }else{
-      coverUrl='';
+      folderCoverUrl='';
     }
+    coverUrl=folderCoverUrl;
 
     // Auto-load album audio files as tracks when opening a folder and reset deck state for new CD
     const audioFiles=view.filter(isAudio);
@@ -733,6 +774,15 @@ async function openFolder(path){
       idx=0;
       A.pause();
       A.removeAttribute('src');
+
+      // If no standalone folder image exists, try reading embedded art from Track 1
+      if(!folderCoverUrl){
+        try{
+          const firstLink=await api('files/get_temporary_link',{path:tracks[0].path_lower});
+          const embedded=await extractEmbeddedArt(firstLink.link);
+          if(embedded)coverUrl=embedded;
+        }catch(e){}
+      }
     } else {
       tracks=[];
       disc='';
@@ -765,7 +815,7 @@ function drawLib(){
   });
   if(!view.some(f=>f['.tag']==='folder'||isAudio(f)))lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
   const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;coverUrl='';draw();showLogin()};
+  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;folderCoverUrl='';coverUrl='';draw();showLogin()};
   lib.append(so);
 }
 
@@ -799,22 +849,27 @@ function draw(){
 
 async function playIdx(i){
   if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
-  idx=i;draw();say('Reading disc…');
+  idx=i;
+  if(!folderCoverUrl)coverUrl='';
+  draw();say('Reading disc…');
   try{
     const j=await api('files/get_temporary_link',{path:cur().path_lower});
     A.src=j.link;
     await A.play();
     say(clean(cur().name));
     
-    // Update Media Session Metadata for Lock Screen & Control Center
-    if('mediaSession' in navigator){
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: clean(cur().name),
-        artist: 'TK-100 Compact Disc',
-        album: disc,
-        artwork: coverUrl ? [{ src: coverUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+    updateMediaSession(clean(cur().name), disc, coverUrl);
+    if('mediaSession' in navigator)navigator.mediaSession.playbackState = 'playing';
+
+    // If no standalone folder image is present, check embedded MP3/audio tag art
+    if(!folderCoverUrl){
+      extractEmbeddedArt(j.link).then(embedded=>{
+        if(embedded && idx===i){
+          coverUrl=embedded;
+          draw();
+          updateMediaSession(clean(cur().name), disc, coverUrl);
+        }
       });
-      navigator.mediaSession.playbackState = 'playing';
     }
 
     drawLib();
@@ -840,7 +895,7 @@ $('#next').onclick=()=>step(1);
 $('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
 $('#stop').onclick=()=>{A.pause();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
-$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
+$('#eject').onclick=()=>{A.pause();A.removeAttribute('src');tracks=[];idx=-1;disc='';folderCoverUrl='';coverUrl='';draw();$('#time').textContent='--:--';$('#seek').value=0;updateSeekFill();say('Disc ejected');if(S){stack=[{path:'',name:'TK_MusicPlayer'}];openFolder('')}};
 $('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
 
 A.onplay=()=>{
@@ -870,8 +925,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
-
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
 S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
