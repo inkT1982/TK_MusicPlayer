@@ -96,7 +96,7 @@
     color: var(--text-muted);
   }
 
-  /* Optical Disc Bay - Made Much Bigger */
+  /* Optical Disc Bay */
   .well {
     position: relative;
     background: var(--well-bg);
@@ -676,14 +676,14 @@ function showLogin(note){
   <label for="tok">Access Token</label>
   <input id="tok" type="password" placeholder="Paste your Dropbox access token" autocomplete="off">
   <button class="go" id="login">Connect Dropbox</button>
-  <p class="note">${note||'Generate an access token in the Dropbox App Console (requires Full Dropbox access and files.metadata.read + files.content.read permissions). Stored locally on this device.'}</p>`;
+  <p class="note">${note||'Generate an access token in the Dropbox App Console (requires App Folder access and files.metadata.read + files.content.read permissions). Stored locally on this device.'}</p>`;
   $('#login').onclick=()=>{
     const t=$('#tok').value.trim();
     if(!t){say('Enter a valid access token');return}
     S={token:t};
     save(S);
-    stack=[{path:'',name:'Library'},{path:'/music',name:'Music'}];
-    openFolder('/music');
+    stack=[{path:'',name:'Library'}];
+    openFolder('');
   };
 }
 
@@ -820,10 +820,11 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));m.setActionHandler('previoustrack',()=>step(-1));
 }
 
-S = { token: "sl.u.AG3X7QGLStN8ivIhYi2okq_Y4dLNl20HPKBbiVPsFg_JA6CK1SkvmzHX3F4_eTk7pnIiHMnfgiQfNJceY7rTx4-jAcTM90jGHA3aZ4vGWKkzYnVPdBVmO_yUo75Luh_NTFqs02aA3_bbdOhMsrHFCuhq7VjXhCILYPPHPeyZ0IKI5copy2wcVwl27vP91fgTQCDplwJm5wEbKnz5o1ohMIaVR5ENHN11cpCM4ChvhOVJnF14z6kA6qa9ffGvKpSVSqmpE7s-spNosuVECETz2n9GWrpNRS2DEVZWcWRXOnnxsb0YFO2RqDMeTEocKH4lBd8FLTQyVbj4dC-d0lCg3nm0DSUyPC_DdczEwzjiqvyXlyBE6kWZhJ1oHMoS97PSuqM9JDQ_zE_CSDm-lTUq9csmgoQnTd3dF4Ywl-9Sc_3LQR2-tk4JzsWRM7BBSbdCan0wOptFKWFum9uW1z2iUoFLq4idIQGb_XZIy0s9OcHl-_1zGKeb73GOxDu1Uo4S0tQVLhYL9aJVlfxoSqhoI87U2H-SvFTao2olZmq3NvBjHjldNaCGKSl_yBu6T7HuVt_N0MZm6WAAgVVPQ7i8K0ky7kPAVHwQw4nHXN05O084bp2LtrR-fLCwiqfOThd8URy1KGfdok-NpIHG-FWRBi0nx2Z_I3YhVSfs2KUTX1Q7PHiru2HrO3IUxOzOh2gPJo7ErgLC6VkCW0SPsnPEcdK8oLgwPRiYUFJSnanQzpjFlFjIsLOKaelz6wLSgbDfK4ctdP0GATAGk91KiWeTBhjNr9grQv_xwffvu3NcPhB5voU_D-_NKQK06kY6yFmMXmQ4qjFgCf30o9Dc1qitfCRKKbPWmiuQIVWlHByR5wBd_AFL6QqFAM_O_Z4qC_ZG9L25GzHqlMSbGc4LoYVe-1BX3nQ7ZLQHch9NsG_BzFFF77r6kiHbxO95QAgAc9w9_OATAF0CuBJHatp5lSpGPcLLeqor6ujaX5YgDaUYZm09nDbwCZwN_eDJmKAMyWdRsDjoP1Fn2TpcCAfbk46h0RZHMUbNJHbUd89uZZoNwu9MyJdwzFsgzjGe6oUGqlHxnfBrZ72LSbAE80hBVGRm4IAWhEk27y6Ct2-q6XizVonwlIvfeQ-en1t_Gic0-nwpi9-Omu42XqCehcn1DtsR4zJpYoHWQxYFeDw-mpFU0WQNcJxHDXeSGZ4IP6ws5ZvWJ2eOiVjn9OlABP_Vp9b-1dk4gKJi7p_5lB1Jtgk4iy1u9wdRjlqa9KRDt7DovWtmwkI-KZR5MgvZdckVZ8PnnI89XH_Gz9LccZtEzcTzGyjYUGBJ_s9_jPbe-jH_TLJxtTo" };
-stack = [{path:'',name:'Library'},{path:'/music',name:'Music'}];
+// --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
+S = { token: "sl.u.AG0VqsS924hflc62dQKSnV5_SDjXjqqsisqC00_IDeznCNNv_oSFnU9624e15o1TUVAu7_JbOmfMWILjj2-2TJzeHivXTnW8jLJgkMMLnjog6EkooX_MZ2sSeKCa-KWYozCy43xuIgFjR9KtnKoQDMTJY14t3q6ohAYsKankRD_pC03TKLkDJ3fLxXYM-vrgyBjf0LKbLAvQ_5e74viEmQ6AmVzLOeYG8pYaWUkx5QjViNCFY7qK-vx7zT2JHyyqeeatdQ_-3i4DC-TNa0oGQ_EQ3mayl0TJlHIswE1NP8RwZSTIyw8ha8D115f-ruJbW-aCWE9owy5NAtF58XZQVtat-w4b6SxdD8TyVk10aBf6JJOkRjYZv_ejzJyEzbU2qSPAPxinmiXgarnEnjyVEkzC8HANDX0Roxj-cxonLXOjgeipyngiO4-RqliZSbZb-ZX3c887nkdM_ZdAIWgKslo9dk90Vz1HZqhgZrtEyv0CiI32MdMN5aT-E91Cg1M3IRsdKFm2hxf9BZ7QolJnafZgH9oL1YiAgi0vE8c-Ujd3CpntlDHkez0NQaxN4khvtiZHOZCyjqARirExz_Ybv3c0NjRYnMOWJEIcu-TSSlMA-AcBSepRsspCGrRZsuFGjJ7Aak4elo5VlHFyBNU2bsKQmzuPWf_Q7VnZDB-zrAAHv1FC7_Dukg3LERGjILqdcdyIB0QkFfEh3eMz8daTPSQQMpzli3rSabmVXvbIZowKFctVTXoEe7H1_cFM91aZupA00-VoiiQGTjuaXJXPbm-j85EDeKmCZrmeyHgqI_gV05h3t8LsBWjFn_KTSigWyPWXHBeKVfk0IHYXwqB9dHm-ulYOaDjO8PFB-A-5foJWF-2Uj1yyucTExVVq8K90n8EA4b7ah5jBESQ1k4K1JeYoIfba98Bp9NcjDqIG5Zh03NsmZBmIQormWmHu2xlQBMg1zDe-7-RKYX5CI_uWnInhyMy6Teh26E7E_LpOKfpCOuJqwhMdNmI9PVPWa7IGUOmkv_eYEFxG5oWd5dfjdCBIb6dIJUrjfSw_OYz7qT26Sdcw_WYJBLeUwIRQyZdnd0SKVfO6RXp9o_L_nczAuSNTdxYBgqWNp25J1EFsZMr_WI7IRF5bQoV2nebX8TnNpintIKAIQfvVGybVXsdl-0DyfO7KqAy7cTPPBjEMKKMzWESYsXqVsDs_iXZpUhhZq30LVJ2L7ipxY_AYHUrOugyKIgTUFmbezIGWzd-NH0tY1jyvmaZp1F4zy99d3bC5k-TiBzNInnXFHgi0ISe721Zil8l6T2aQCVyVBw8Q6ljC9kZVKvhoAb38r2I4W-ecCJ8" };
+stack = [{path:'', name:'Library'}];
 draw();
-openFolder('/music');
+openFolder(''); // Change to openFolder('/Music') if your files are inside a subfolder named Music
 </script>
 </body>
 </html>
