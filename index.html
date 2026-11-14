@@ -121,16 +121,6 @@
       0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
-  /* Perfectly Aligned Window Perimeter Shadow Ring */
-  .well-shadow {
-    position: absolute;
-    inset: 12px;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.85) 92%, #000000 100%);
-    pointer-events: none;
-    z-index: 10;
-  }
-
   .disc {
     position: relative;
     aspect-ratio: 1;
@@ -152,6 +142,16 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
     transition: filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
+  }
+
+  /* Window Perimeter Shadow Ring (layered on top of the disc surface to cast realistic edge shadow) */
+  .well-shadow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, transparent 68%, rgba(0, 0, 0, 0.85) 92%, #000000 100%);
+    pointer-events: none;
+    z-index: 10;
   }
 
   /* Rotor for independent rotation without disrupting slide animations */
@@ -690,8 +690,8 @@
         <div class="lab" id="lab"></div>
         <div class="hub"></div>
       </div>
+      <div class="well-shadow"></div>
     </div>
-    <div class="well-shadow"></div>
   </div>
   <div class="lcd">
     <div class="row1"><span id="trk">T--/--</span><span id="time">--:--</span></div>
@@ -1178,7 +1178,6 @@ if('mediaSession' in navigator){
   m.setActionHandler('nexttrack',()=>step(1));
   m.setActionHandler('previoustrack',()=>step(-1));
 }
-
 
 
 // --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
