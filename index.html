@@ -25,6 +25,7 @@
     --text-muted: #8e8e96;
     --radius-deck: 24px;
     --radius-btn: 12px;
+    --space: 16px;
   }
 
   * {
@@ -45,7 +46,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.4;
-    padding: max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
+    padding: max(var(--space), env(safe-area-inset-top)) max(var(--space), env(safe-area-inset-right)) max(var(--space), env(safe-area-inset-bottom)) max(var(--space), env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -54,10 +55,11 @@
 
   /* Main Deck Enclosure */
   .deck {
+    position: relative;
     width: 100%;
     max-width: 440px;
     border-radius: var(--radius-deck);
-    padding: 20px;
+    padding: var(--space);
     background: linear-gradient(175deg, var(--chassis-top) 0%, var(--chassis-bg) 45%, #121214 100%);
     border: 1px solid var(--chassis-border);
     box-shadow:
@@ -73,7 +75,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 18px;
+    margin-bottom: var(--space);
     padding: 0 2px;
   }
 
@@ -104,9 +106,9 @@
     background: linear-gradient(145deg, #141417, #070709);
     border-radius: 50%;
     padding: 12px;
-    width: 98%;
+    width: 100%;
     max-width: 390px;
-    margin: 0 auto 20px;
+    margin: 0 auto var(--space);
     overflow: hidden;
     box-shadow:
       inset 0 14px 32px rgba(0, 0, 0, 0.98),
@@ -289,13 +291,13 @@
     background: var(--oled-bg);
     color: var(--oled-amber);
     border-radius: 14px;
-    padding: 12px 16px;
+    padding: 12px var(--space);
     font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
     border: 1px solid #29292e;
     box-shadow:
       inset 0 4px 14px rgba(0, 0, 0, 0.95),
       0 1px 0 rgba(255, 255, 255, 0.06);
-    margin-bottom: 14px;
+    margin-bottom: var(--space);
   }
 
   .row1 {
@@ -341,7 +343,7 @@
     border-radius: 999px;
     background: #0c0c0e;
     border: 1px solid #2b2b30;
-    margin: 4px 0 18px;
+    margin: 0 0 var(--space);
     cursor: pointer;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
   }
@@ -380,11 +382,11 @@
     display: grid;
     grid-template-columns: 1fr 1.35fr 1fr 1fr;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: var(--space);
   }
 
   .btn {
-    height: 50px;
+    height: 48px;
     border-radius: var(--radius-btn);
     border: 1px solid #38383e;
     background: linear-gradient(180deg, var(--btn-highlight) 0%, var(--btn-surface) 100%);
@@ -453,7 +455,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 4px;
+    padding-top: var(--space);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
@@ -489,7 +491,8 @@
     transition: all 0.2s ease;
   }
 
-  .mini[aria-pressed=true] {
+  .mini[aria-pressed=true],
+  .mini[aria-expanded=true] {
     color: var(--text-main);
     border-color: rgba(255, 90, 31, 0.5);
     background: rgba(255, 90, 31, 0.1);
@@ -500,21 +503,19 @@
     box-shadow: 0 0 8px var(--braun-orange);
   }
 
-  /* Disc Library Drawer (Default Portrait - Collapsible) */
+  /* Disc Library Drawer (Portrait - Collapsible Inside Deck) */
   .lib {
     width: 100%;
-    max-width: 440px;
-    margin: 14px auto 0;
-    background: #141416;
+    margin-top: var(--space);
+    background: #101012;
     border: 1px solid #2a2a2e;
-    border-radius: 20px;
-    padding: 16px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
-    display: none; /* Collapsed by default in portrait */
+    border-radius: 16px;
+    padding: var(--space);
+    display: none;
   }
 
   .lib.open {
-    display: block; /* Toggled open by library button */
+    display: block;
   }
 
   .lib h2 {
@@ -606,7 +607,7 @@
   }
 
   .lib button.go {
-    margin-top: 16px;
+    margin-top: var(--space);
     width: 100%;
     padding: 12px;
     border: none;
@@ -649,7 +650,8 @@
   body.tv-mode input[type=range],
   body.tv-mode .top small,
   body.tv-mode .brand-badge span,
-  body.tv-mode .tools .mini:not(#tv-mode) {
+  body.tv-mode .tools .mini:not(#tv-mode),
+  body.tv-mode #lib-toggle {
     display: none !important;
   }
 
@@ -673,7 +675,7 @@
     padding-top: 10px !important;
   }
 
-  /* LANDSCAPE LAYOUT: SECURE SCREEN FIT, FIXED SIZING, RIGHT-HALF PARTIAL SLIDE-UP */
+  /* LANDSCAPE LAYOUT: UNIFORM 16PX PADDING/MARGINS, CONTAINED RIGHT-SIDE SLIDE-UP */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
@@ -681,18 +683,18 @@
       align-items: center;
       height: 100vh;
       overflow: hidden;
-      padding: 10px;
+      padding: max(var(--space), env(safe-area-inset-top)) max(var(--space), env(safe-area-inset-right)) max(var(--space), env(safe-area-inset-bottom)) max(var(--space), env(safe-area-inset-left));
     }
     .deck {
       max-width: 720px;
       width: 100%;
-      height: 420px;
+      height: 362px;
       display: grid;
-      grid-template-columns: 360px 320px; /* Fixed columns, fits standard landscape screens without overflowing */
-      gap: 16px;
+      grid-template-columns: 330px 1fr;
+      gap: var(--space);
       align-content: center;
       align-items: center;
-      padding: 16px;
+      padding: var(--space);
       position: relative;
       overflow: hidden;
     }
@@ -700,54 +702,58 @@
     .deck .well {
       grid-column: 1;
       grid-row: 1 / span 5;
+      width: 330px;
       max-width: 330px;
-      margin: 0 auto;
+      margin: 0;
     }
     /* Right Side: Grouped Controls */
     .deck .top {
       grid-column: 2;
       grid-row: 1;
-      margin: 0 0 2px 0;
+      margin: 0;
+      height: 28px;
     }
     .deck .lcd {
       grid-column: 2;
       grid-row: 2;
-      margin-bottom: 8px;
+      margin: 0;
     }
     .deck input[type=range] {
       grid-column: 2;
       grid-row: 3;
-      margin: 0 0 10px 0;
+      margin: 0;
     }
     .deck .btns {
       grid-column: 2;
       grid-row: 4;
-      margin-bottom: 8px;
+      margin: 0;
     }
     .deck .tools {
       grid-column: 2;
       grid-row: 5;
       border-top: none;
       padding-top: 0;
+      margin: 0;
     }
-    /* Right-side partial slide-up library (leaves top header visible) */
+    /* Contained inside .deck, strictly over right half, stops below top header */
     .lib {
       position: absolute;
-      top: 45px;
-      right: 12px;
-      bottom: 12px;
-      width: 306px;
+      top: calc(var(--space) + 28px + 12px); /* 56px: leaves top bar & Library button accessible */
+      right: var(--space);
+      bottom: var(--space);
+      left: calc(var(--space) + 330px + var(--space)); /* 362px: aligns cleanly with right column */
+      width: auto;
+      margin: 0;
       background: #141416;
       border: 1px solid #2a2a2e;
       border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
       z-index: 1000;
       display: block;
-      transform: translateY(120%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(calc(100% + var(--space) + 8px));
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
-      margin: 0;
-      padding: 16px;
+      padding: var(--space);
     }
     .lib.open {
       transform: translateY(0);
@@ -763,7 +769,7 @@
       <div class="brand-dot" id="power-led"></div>
       <span>TK-100</span>
     </div>
-    <button class="mini" id="lib-toggle" style="padding: 5px 12px; font-size: 11px;">Library</button>
+    <button class="mini" id="lib-toggle" aria-expanded="false" style="padding: 5px 12px; font-size: 11px;">Library</button>
   </div>
   <div class="well">
     <div class="disc empty" id="disc">
@@ -791,9 +797,10 @@
     <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
     <button class="mini" id="eject"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>Eject</button>
   </div>
+
+  <section class="lib" id="lib"></section>
 </main>
 
-<section class="lib" id="lib"></section>
 <audio id="a" preload="auto"></audio>
 
 <script>
@@ -1042,7 +1049,10 @@ function updateMediaSession(titleText, albumText, artSrc){
 }
 
 function showLogin(note){
-  $('#lib').innerHTML=`<h2>Connect to Dropbox</h2>
+  const lib = $('#lib');
+  lib.classList.add('open');
+  $('#lib-toggle').setAttribute('aria-expanded', 'true');
+  lib.innerHTML=`<h2>Connect to Dropbox</h2>
   <button class="go" id="login-btn">Sign in with Dropbox</button>
   <p class="note">${note||'Sign in securely through Dropbox. This establishes a permanent connection with automatic token refreshing.'}</p>`;
   $('#login-btn').onclick = startLogin;
@@ -1324,7 +1334,8 @@ $('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();sa
 $('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
 
 $('#lib-toggle').onclick = () => {
-  $('#lib').classList.toggle('open');
+  const isOpen = $('#lib').classList.toggle('open');
+  $('#lib-toggle').setAttribute('aria-expanded', isOpen);
 };
 
 $('#tv-mode').onclick = () => {
@@ -1332,6 +1343,7 @@ $('#tv-mode').onclick = () => {
   const active = document.body.classList.contains('tv-mode');
   $('#tv-mode').setAttribute('aria-pressed', active);
   $('#lib').classList.remove('open');
+  $('#lib-toggle').setAttribute('aria-expanded', 'false');
 };
 
 $('#eject').onclick=async ()=>{
