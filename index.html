@@ -506,7 +506,7 @@
     box-shadow: 0 0 8px var(--braun-orange);
   }
 
-  /* Disc Library Drawer (Default Portrait) */
+  /* Disc Library Drawer */
   .lib {
     width: 100%;
     max-width: 440px;
@@ -675,7 +675,6 @@
     padding-top: 10px !important;
   }
 
-  /* REFINED LANDSCAPE STYLING: CD FOCUS ON LEFT, GROUPED CONTROLS ON RIGHT, LIBRARY HIDDEN BEHIND TAB */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
@@ -694,14 +693,12 @@
       align-items: center;
       padding: 24px;
     }
-    /* Left Side: Big Spinning CD Focus */
     .deck .well {
       grid-column: 1;
       grid-row: 1 / span 5;
       max-width: 290px;
       margin: 0;
     }
-    /* Right Side: Better Grouped Controls */
     .deck .top {
       grid-column: 2;
       grid-row: 1;
@@ -728,7 +725,6 @@
       border-top: none;
       padding-top: 0;
     }
-    /* Library Drawer hides off-screen behind a tab in landscape */
     .lib {
       position: fixed;
       top: 0;
@@ -796,10 +792,35 @@
 <audio id="a" preload="auto"></audio>
 
 <script>
+const CLIENT_ID = 'dtcnff0rr7py9qc'; // Replace with your Dropbox App Key
+
 const $=s=>document.querySelector(s);
 const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
 let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='',isAnimating=false,playSessionId=0;
+
+// PKCE Helper Functions
+function generateCodeVerifier() {
+  const array = new Uint8Array(32);
+  window.crypto.getRandomValues(array);
+  return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function startLogin() {
+  const verifier = generateCodeVerifier();
+  localStorage.setItem('tk_verifier', verifier);
+  const challenge = await generateCodeChallenge(verifier);
+  const redirectUri = window.location.origin + window.location.pathname;
+  const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${CLIENT_ID}&response_type=code&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  window.location.href = authUrl;
+}
 
 let linkCache = {};
 async function getLink(path){
@@ -929,26 +950,66 @@ function updateSeekFill(){
   el.style.background=el.disabled?'#0c0c0e':`linear-gradient(90deg, var(--braun-orange) ${pct}%, #0c0c0e ${pct}%)`;
 }
 
-async function api(method,params){
-  const res=await fetch(`https://api.dropboxapi.com/2/${method}`,{
-    method:'POST',
-    headers:{
-      'Authorization':`Bearer ${S.token}`,
-      'Content-Type':'application/json'
+async function refreshAccessToken() {
+  if(!S || !S.refresh_token) return false;
+  try {
+    const res = await fetch('https://api.dropbox.com/oauth2/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: S.refresh_token,
+        client_id: CLIENT_ID
+      })
+    });
+    if(!res.ok) return false;
+    const data = await res.json();
+    S.token = data.access_token;
+    if(data.refresh_token) S.refresh_token = data.refresh_token;
+    save(S);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+async function api(method, params){
+  if(!S || !S.token) throw new Error('Not authenticated');
+  
+  let res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${S.token}`,
+      'Content-Type': 'application/json'
     },
-    body:JSON.stringify(params)
+    body: JSON.stringify(params)
   });
-  if(!res.ok){
-    if(res.status===401){
-      S=null;save(null);showLogin('Session expired or invalid token. Sign in again.');
+
+  if(res.status === 401){
+    const refreshed = await refreshAccessToken();
+    if(refreshed) {
+      res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${S.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      });
+    } else {
+      S = null; save(null); showLogin('Session expired. Please sign in again.');
+      throw new Error('Session expired');
     }
-    const rawText=await res.text();
-    let msg=rawText;
-    try{
-      const errJson=JSON.parse(rawText);
-      msg=errJson.error_summary||errJson.user_message||rawText;
-    }catch(e){}
-    throw new Error(msg||`Dropbox HTTP ${res.status}`);
+  }
+
+  if(!res.ok){
+    const rawText = await res.text();
+    let msg = rawText;
+    try {
+      const errJson = JSON.parse(rawText);
+      msg = errJson.error_summary || errJson.user_message || rawText;
+    } catch(e){}
+    throw new Error(msg || `Dropbox HTTP ${res.status}`);
   }
   return await res.json();
 }
@@ -977,18 +1038,9 @@ function updateMediaSession(titleText, albumText, artSrc){
 
 function showLogin(note){
   $('#lib').innerHTML=`<h2>Connect to Dropbox</h2>
-  <label for="tok">Access Token</label>
-  <input id="tok" type="password" placeholder="Paste your Dropbox access token" autocomplete="off">
-  <button class="go" id="login">Connect Dropbox</button>
-  <p class="note">${note||'Generate an access token in the Dropbox App Console (requires App Folder access and files.metadata.read + files.content.read permissions). Stored locally on this device.'}</p>`;
-  $('#login').onclick=()=>{
-    const t=$('#tok').value.trim();
-    if(!t){say('Enter a valid access token');return}
-    S={token:t};
-    save(S);
-    stack=[{path:'',name:'TK_MusicPlayer'}];
-    openFolder('');
-  };
+  <button class="go" id="login-btn">Sign in with Dropbox</button>
+  <p class="note">${note||'Sign in securely through Dropbox. This establishes a permanent connection with automatic token refreshing.'}</p>`;
+  $('#login-btn').onclick = startLogin;
 }
 
 async function openFolder(path){
@@ -1018,7 +1070,7 @@ async function openFolder(path){
     draw();
   }catch(e){
     say('Error: ' + e.message);
-    showLogin('Connection failed: ' + e.message + '. Please check your token and try again.');
+    showLogin('Connection failed: ' + e.message + '. Please check authorization.');
   }
 }
 
@@ -1336,13 +1388,45 @@ if('mediaSession' in navigator){
   m.setActionHandler('previoustrack',()=>step(-1));
 }
 
+// Initialization & OAuth Code Exchange Check
+const urlParams = new URLSearchParams(window.location.search);
+const authCode = urlParams.get('code');
 
+if (authCode) {
+  window.history.replaceState({}, document.title, window.location.pathname);
+  const verifier = localStorage.getItem('tk_verifier');
+  const redirectUri = window.location.origin + window.location.pathname;
 
-// --- HARDCODED TOKEN SETUP (Bypasses login & opens your TK_MusicPlayer folder directly) ---
-S = { token: "sl.u.AG1lacvsi-XkN746q1jrb6VIdvjbdarx3azdcZMGUSvFnitfTHCcSc0cJgZ1OMnc98Jesb0BS3lNe-K4UwGOFhWOntuJtDq-z_ki6nHzUhx0obl_3LvUZ5EO7L3skVNiLVETpKB5V0q1eqczDHwwcrNoAlfiVEuDSnr4G5SvmURNeqj68zg6MLAuu5DBDxRGwtaYUII2hm7Eutj-_a7VhMvzW4-mcRca6Pap5AMOPfkFoKBQDSzceS4dPIqZGT4fcuE_kmhkLHX_SAYMsBCHhOzC3b1kEKqFHoOM7nCExnBNZyVF1JdzwpNn-dLaUgRPrG1PXaz_BtTUNUh1WFEx5z6I3SGwbEC4ojuXUy_Wq8iLzpbgCj7d2P9ZUgDmHPhDZbTtZf769wXoheXkjzSdHvWrrZ8uKVQlqTLMB7_MQIYzkgj1eOOvkzlfPqZsVWvC1FgrFepgZVxJ_b2oqCMJwi3OGCxIdMcwYOYpGx75BcTm_qdEcvmgPP31Uc4Rjo0bWMklVKbNf2Ok83o6wpjfXbfy9hWfxM72TSk7nJZfgYK_VHGH5xR8YIOVSlfokSvg-mYC0mQyCMWhQxSTu7M24QoZksqVaeg0selaoaovM7Vtw1cXKA3JPEygYHnyW601bktqa1KS06zMDsv1vIDFdUWE9RulTN9FT-RAJUp50hWyuwcL_23z7gejEg5iPkWNoS8P6VHFFX8H3Fv7fbRf8XmFCzBVRMs09B000NcaLhX11pSmWnPCsZqEw7DNo3dmA0nJJM3ivIksuXsuysbrig4K4SQ1e_JNSWRsoAYyRAY_Yq3eEtWA-fVDX_XVylWoIV3lNI2e2LzIIMFi_qPOlOFIbr7kbU0wl_ojTiR7Fzbe51BuSE0rnWPlp7QzzrHMtMvWMikTFGKVmffNlOekGPiS8nM76aYAUs0kQI2cDt9CjWkZ8cRrVcllpFXbKnYRsUfeGs2q9M4lz-f_EruBiUuU_B5zcM0-VVFk50XHBOzrzRSKTaJCko4wCeuF47V8EsvAwzzy0hrc4EYO1fGKbbIhdpOBh1JqxVTEgJXstHzac3IlUKrkc1mDVxDQdd5o44ZfDy6ONsBML5-czZpqjDeYcCRXpK_Y_YfVjbSHBOxdMCBoU3h4hMiNy0QQCTNLGlo6Cu0q20EGfcoxHkMh6HX88q7VH_K4K63lutGYeyDuPRcJOoMeg3a_JetaG61YdYXbQSWIe3qBRbwWJhr20wxvL-AZbeuwuvqPM4ixYRmHJ9uYsQCjtS4tApEAw8XZ64YDXkr0Ci8ekaC27t_wvoGs-36_MCjmWe_VxjApPVDS2aG6_e9er1vs78XMfKriOKg" };
-stack = [{path:'', name:'TK_MusicPlayer'}];
-draw();
-openFolder(''); // Change to openFolder('/Music') if your files are inside a subfolder named Music
+  fetch('https://api.dropbox.com/oauth2/token', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: authCode,
+      client_id: CLIENT_ID,
+      code_verifier: verifier,
+      redirect_uri: redirectUri
+    })
+  }).then(res => res.json()).then(data => {
+    if(data.access_token) {
+      S = { token: data.access_token, refresh_token: data.refresh_token };
+      save(S);
+      openFolder('');
+    } else {
+      showLogin('Authentication failed. Please try again.');
+    }
+  }).catch(() => {
+    showLogin('Authentication network error.');
+  });
+} else {
+  S = load();
+  if(S && S.token) {
+    openFolder('');
+  } else {
+    showLogin();
+  }
+}
 </script>
 </body>
 </html>
+
