@@ -98,14 +98,6 @@
     color: var(--text-main);
   }
 
-  .top small {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
   /* Optical Disc Bay Window */
   .well {
     position: relative;
@@ -455,7 +447,7 @@
     outline-offset: 2px;
   }
 
-  /* Utility Switches */
+  /* Utility Switches (3 Un-squeezed Buttons) */
   .tools {
     display: flex;
     justify-content: space-between;
@@ -506,7 +498,7 @@
     box-shadow: 0 0 8px var(--braun-orange);
   }
 
-  /* Disc Library Drawer */
+  /* Disc Library Drawer (Default Portrait) */
   .lib {
     width: 100%;
     max-width: 440px;
@@ -675,6 +667,7 @@
     padding-top: 10px !important;
   }
 
+  /* LANDSCAPE LAYOUT: MAXIMIZED CD LEFT, REDUCED CONTROLS RIGHT, SLIDE-UP LIBRARY */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
@@ -685,39 +678,41 @@
       padding: 16px;
     }
     .deck {
-      max-width: 780px;
+      max-width: 860px;
       width: 100%;
       display: grid;
-      grid-template-columns: 310px 1fr;
-      gap: 24px;
+      grid-template-columns: 1.3fr 0.75fr; /* Maximized CD left, 30% reduced controls right */
+      gap: 28px;
       align-items: center;
       padding: 24px;
     }
+    /* Left Side: Maximized Optical Well */
     .deck .well {
       grid-column: 1;
       grid-row: 1 / span 5;
-      max-width: 290px;
-      margin: 0;
+      max-width: 360px;
+      margin: 0 auto;
     }
+    /* Right Side: Grouped Controls */
     .deck .top {
       grid-column: 2;
       grid-row: 1;
-      margin: 0 0 8px 0;
+      margin: 0 0 4px 0;
     }
     .deck .lcd {
       grid-column: 2;
       grid-row: 2;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .deck input[type=range] {
       grid-column: 2;
       grid-row: 3;
-      margin: 0 0 16px 0;
+      margin: 0 0 12px 0;
     }
     .deck .btns {
       grid-column: 2;
       grid-row: 4;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
     .deck .tools {
       grid-column: 2;
@@ -725,27 +720,27 @@
       border-top: none;
       padding-top: 0;
     }
+    /* Slide-Up Library Structure for Landscape */
     .lib {
       position: fixed;
-      top: 0;
-      right: 0;
       bottom: 0;
-      width: 420px;
-      max-width: 90vw;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-height: 75vh;
       background: #141416;
-      border-left: 1px solid #2a2a2e;
-      border-radius: 0;
-      box-shadow: -16px 0 40px rgba(0, 0, 0, 0.85);
+      border-top: 1px solid #2a2a2e;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.9);
       z-index: 1000;
-      transform: translateX(100%);
+      transform: translateY(100%);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
       margin: 0;
-      height: 100vh;
       padding: 24px;
     }
     .lib.open {
-      transform: translateX(0);
+      transform: translateY(0);
     }
   }
 </style>
@@ -757,7 +752,7 @@
       <div class="brand-dot" id="power-led"></div>
       <span>TK-100</span>
     </div>
-    <small>Compact Disc Digital Audio</small>
+    <button class="mini" id="lib-toggle" style="padding: 5px 12px; font-size: 11px;">Library</button>
   </div>
   <div class="well">
     <div class="disc empty" id="disc">
@@ -782,7 +777,6 @@
   </div>
   <div class="tools">
     <button class="mini" id="shuf" aria-pressed="false"><span class="led"></span>Shuffle</button>
-    <button class="mini" id="lib-toggle">Library</button>
     <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
     <button class="mini" id="eject"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>Eject</button>
   </div>
@@ -1429,4 +1423,3 @@ if (authCode) {
 </script>
 </body>
 </html>
-
