@@ -25,7 +25,7 @@
     --text-muted: #8e8e96;
     --radius-deck: 24px;
     --radius-btn: 12px;
-    --space: 16px;
+    --space: 20px;
   }
 
   * {
@@ -503,7 +503,21 @@
     box-shadow: 0 0 8px var(--braun-orange);
   }
 
-  /* Disc Library Drawer (Portrait - Collapsible Inside Deck) */
+  /* Copyright Footer inside Chassis */
+  .copyright-footer {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  /* Disc Library Drawer (Portrait) */
   .lib {
     width: 100%;
     margin-top: var(--space);
@@ -651,7 +665,8 @@
   body.tv-mode .top small,
   body.tv-mode .brand-badge span,
   body.tv-mode .tools .mini:not(#tv-mode),
-  body.tv-mode #lib-toggle {
+  body.tv-mode #lib-toggle,
+  body.tv-mode .copyright-footer {
     display: none !important;
   }
 
@@ -675,35 +690,35 @@
     padding-top: 10px !important;
   }
 
-  /* LANDSCAPE LAYOUT: UNIFORM 16PX PADDING/MARGINS, CONTAINED RIGHT-SIDE SLIDE-UP */
+  /* LANDSCAPE LAYOUT: GENEROUS UNIFORM MARGINS & PADDING, CLEAN POPUP WINDOW BELOW LIBRARY BUTTON */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       overflow: hidden;
-      padding: max(var(--space), env(safe-area-inset-top)) max(var(--space), env(safe-area-inset-right)) max(var(--space), env(safe-area-inset-bottom)) max(var(--space), env(safe-area-inset-left));
+      padding: 24px;
     }
     .deck {
-      max-width: 720px;
+      max-width: 760px;
       width: 100%;
-      height: 362px;
+      height: 412px;
       display: grid;
-      grid-template-columns: 330px 1fr;
-      gap: var(--space);
+      grid-template-columns: 350px 1fr;
+      gap: 24px;
       align-content: center;
       align-items: center;
-      padding: var(--space);
+      padding: 24px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
     /* Left Side: CD Well */
     .deck .well {
       grid-column: 1;
       grid-row: 1 / span 5;
-      width: 330px;
-      max-width: 330px;
+      width: 320px;
+      max-width: 320px;
       margin: 0;
     }
     /* Right Side: Grouped Controls */
@@ -711,7 +726,7 @@
       grid-column: 2;
       grid-row: 1;
       margin: 0;
-      height: 28px;
+      height: 32px;
     }
     .deck .lcd {
       grid-column: 2;
@@ -735,28 +750,31 @@
       padding-top: 0;
       margin: 0;
     }
-    /* Contained inside .deck, strictly over right half, stops below top header */
+    /* Footer spans across bottom of control column */
+    .deck .copyright-footer {
+      grid-column: 2;
+      grid-row: 6;
+      margin-top: 4px;
+      padding-top: 6px;
+    }
+    /* Clean popup window positioned right below the Library button in landscape */
     .lib {
       position: absolute;
-      top: calc(var(--space) + 28px + 12px); /* 56px: leaves top bar & Library button accessible */
-      right: var(--space);
-      bottom: var(--space);
-      left: calc(var(--space) + 330px + var(--space)); /* 362px: aligns cleanly with right column */
-      width: auto;
-      margin: 0;
+      top: 64px;
+      right: 24px;
+      width: 340px;
+      max-height: 320px;
       background: #141416;
       border: 1px solid #2a2a2e;
-      border-radius: 14px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
       z-index: 1000;
-      display: block;
-      transform: translateY(calc(100% + var(--space) + 8px));
-      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
       overflow-y: auto;
-      padding: var(--space);
+      margin: 0;
+      padding: 16px;
     }
     .lib.open {
-      transform: translateY(0);
       display: block;
     }
   }
@@ -797,6 +815,8 @@
     <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
     <button class="mini" id="eject"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>Eject</button>
   </div>
+
+  <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
 
   <section class="lib" id="lib"></section>
 </main>
