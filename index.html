@@ -1174,7 +1174,7 @@ function bindMediaSessionHandlers() {
   try {
     m.setActionHandler('play', () => {
       if (!tracks.length) return;
-      if (A.src && !A.src.startsWith('data:') && A.paused && !A.ended) {
+      if (A.getAttribute('src') && !A.src.startsWith('data:') && A.paused && !A.ended) {
         A.play().catch(() => playIdx(Math.max(idx, 0)));
       } else {
         playIdx(Math.max(idx, 0));
@@ -1234,16 +1234,30 @@ function syncMediaPosition() {
   } catch (e) {}
 }
 
+function guessImageMime(url) {
+  if (!url) return 'image/jpeg';
+  if (url.startsWith('data:')) {
+    const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);/);
+    return match ? match[1] : 'image/jpeg';
+  }
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  if (cleanUrl.endsWith('.png')) return 'image/png';
+  if (cleanUrl.endsWith('.webp')) return 'image/webp';
+  if (cleanUrl.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
 function updateMediaSession(titleText, albumText, artSrc) {
   if (!('mediaSession' in navigator)) return;
   bindMediaSessionHandlers();
+  const mime = guessImageMime(artSrc);
   navigator.mediaSession.metadata = new MediaMetadata({
     title: titleText,
     artist: 'TK-100 Compact Disc',
     album: albumText,
     artwork: artSrc ? [
-      { src: artSrc, sizes: '256x256', type: 'image/jpeg' },
-      { src: artSrc, sizes: '512x512', type: 'image/jpeg' }
+      { src: artSrc, sizes: '256x256', type: mime },
+      { src: artSrc, sizes: '512x512', type: mime }
     ] : []
   });
   syncMediaPosition();
@@ -1489,6 +1503,10 @@ function drawLib() {
     currentAlbumPath = '';
     folderCoverUrl = '';
     coverUrl = '';
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+    }
     stopSpin();
     draw();
     showLogin();
@@ -1647,7 +1665,10 @@ function stopPlayback() {
   $('#seek').value = 0;
   $('#time').textContent = tracks.length ? '00:00' : '--:--';
   updateSeekFill();
-  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = tracks.length ? 'paused' : 'none';
+    syncMediaPosition();
+  }
   const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
   say(tracks.length ? `${clean(cur().name)}${badge}` : 'No disc');
 }
@@ -1675,6 +1696,10 @@ function step(d) {
       A.currentTime = 0;
       $('#seek').value = 0;
       updateSeekFill();
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+        syncMediaPosition();
+      }
       say('End of disc');
     }
   } else if (d < 0 && repeatMode === 'all') {
@@ -1724,7 +1749,7 @@ $('#pp').onclick = async () => {
   if (!A.paused) {
     A.pause();
     stopSpin();
-  } else if (A.src && !A.src.startsWith('data:') && A.currentTime > 0 && !A.ended) {
+  } else if (A.getAttribute('src') && !A.src.startsWith('data:') && A.currentTime > 0 && !A.ended) {
     A.play().catch(() => playIdx(Math.max(idx, 0)));
   } else {
     playIdx(Math.max(idx, 0));
@@ -1794,6 +1819,10 @@ $('#eject').onclick = async () => {
   currentAlbumPath = '';
   folderCoverUrl = '';
   coverUrl = '';
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+  }
   draw();
   $('#time').textContent = '--:--';
   $('#seek').value = 0;
@@ -1837,7 +1866,7 @@ A.onloadedmetadata = () => {
 };
 
 A.ontimeupdate = () => {
-  if (A.src.startsWith('data:')) return;
+  if (!A.getAttribute('src') || A.src.startsWith('data:')) return;
   $('#time').textContent = fmt(A.currentTime);
   if (isFinite(A.duration)) {
     $('#seek').value = A.currentTime / A.duration * 1000;
@@ -1851,7 +1880,7 @@ A.onended = () => {
 };
 
 A.onerror = async () => {
-  if (!A.src || A.src.startsWith('data:')) return;
+  if (!A.getAttribute('src') || A.src.startsWith('data:')) return;
   const sessionAtError = playSessionId;
   const pathToRetry = activeTrackPath || (tracks[idx] && tracks[idx].path_lower);
 
@@ -1873,6 +1902,15 @@ A.onerror = async () => {
   stopSpin();
   say('Cannot play this file');
 };
+
+document.addEventListener('visibilitychange', () => {
+  if (!('mediaSession' in navigator)) return;
+  bindMediaSessionHandlers();
+  if (A.getAttribute('src') && !A.src.startsWith('data:')) {
+    navigator.mediaSession.playbackState = (!A.paused && !A.ended) ? 'playing' : 'paused';
+    syncMediaPosition();
+  }
+});
 
 bindMediaSessionHandlers();
 
