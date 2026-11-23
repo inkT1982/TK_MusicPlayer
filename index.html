@@ -111,19 +111,16 @@
     font-size: 11px;
   }
 
- /* Optical Disc Bay Window */
+/* Optical Disc Bay Window (Portrait / Vertical) */
   .well {
     position: relative;
     background: linear-gradient(145deg, #141417, #070709);
     border-radius: 50%;
     padding: 12px;
-    width: min(72vw, 276px);
-    max-width: 276px;
-    aspect-ratio: 1;
+    width: 100%;
+    max-width: 390px;
     margin: 0 auto var(--space);
     overflow: hidden;
-    display: grid;
-    place-items: center;
     box-shadow:
       inset 0 14px 32px rgba(0, 0, 0, 0.98),
       inset 0 0 0 2px #2c2c32,
@@ -132,9 +129,6 @@
 
   .disc {
     position: relative;
-    width: 100%;
-    height: 100%;
-    max-width: 318px;
     aspect-ratio: 1;
     border-radius: 50%;
     background:
@@ -160,8 +154,8 @@
   .disc.mini-cd {
     width: 170px;
     max-width: 170px;
+    margin: auto;
   }
-
   .well-shadow {
     position: absolute;
     inset: 0;
