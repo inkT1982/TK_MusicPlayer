@@ -321,8 +321,9 @@
   .row1 {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 4px;
+    align-items: center;
+    margin-bottom: 6px;
+    min-height: 34px;
   }
 
   .row1 span:first-child {
@@ -330,13 +331,18 @@
     font-weight: 600;
     letter-spacing: 0.06em;
     color: var(--oled-dim);
+    line-height: 1.15;
+    display: inline-flex;
+    align-items: center;
   }
 
   .row1 span:last-child {
     font-size: 28px;
     font-weight: 700;
     letter-spacing: 0.02em;
-    line-height: 1;
+    line-height: 1.15;
+    display: inline-flex;
+    align-items: center;
     text-shadow: 0 0 14px rgba(255, 157, 59, 0.45);
     font-variant-numeric: tabular-nums;
   }
@@ -891,6 +897,10 @@ let playSessionId = 0;
 let folderSessionId = 0;
 let pendingTrayRequest = null;
 
+// Tracks whether the active audio element URL came from linkCache for 1-time refresh on error
+let activeTrackPath = '';
+let retriedCurrentSrc = false;
+
 // PKCE Helper Functions
 function generateCodeVerifier() {
   const array = new Uint8Array(32);
@@ -919,15 +929,15 @@ async function startLogin() {
 }
 
 let linkCache = {};
-async function getLink(path) {
-  if (linkCache[path]) return linkCache[path];
+async function getLink(path, forceRefresh = false) {
+  if (!forceRefresh && linkCache[path]) return linkCache[path];
   const j = await api('files/get_temporary_link', { path });
   linkCache[path] = j.link;
   return j.link;
 }
 
 function prefetchLink(path) {
-  if (!path || linkCache[path]) return;
+  if (!path || linkCache[path] || isAnimating) return;
   api('files/get_temporary_link', { path }).then(j => {
     linkCache[path] = j.link;
   }).catch(() => {});
@@ -937,6 +947,7 @@ async function extractEmbeddedArt(audioUrl) {
   if (!window.jsmediatags) return '';
   try {
     const response = await fetch(audioUrl);
+    if (!response.ok || !response.body) return '';
     const reader = response.body.getReader();
     let chunks = [];
     let receivedLength = 0;
@@ -947,7 +958,7 @@ async function extractEmbeddedArt(audioUrl) {
       chunks.push(value);
       receivedLength += value.length;
       if (receivedLength >= 256 * 1024) {
-        reader.cancel();
+        try { await reader.cancel(); } catch (e) {}
         break;
       }
     }
@@ -982,8 +993,31 @@ async function extractEmbeddedArt(audioUrl) {
   }
 }
 
+// Throttled folder art queue (max 2 concurrent requests, defers while animating)
 let folderArtCache = {};
-async function getFolderArt(folderPath) {
+let folderArtQueue = [];
+let activeFolderArtWorkers = 0;
+const MAX_FOLDER_ART_CONCURRENCY = 2;
+
+function pumpFolderArtQueue() {
+  if (isAnimating) {
+    setTimeout(pumpFolderArtQueue, 250);
+    return;
+  }
+  while (activeFolderArtWorkers < MAX_FOLDER_ART_CONCURRENCY && folderArtQueue.length > 0) {
+    const job = folderArtQueue.shift();
+    activeFolderArtWorkers++;
+    runFolderArtJob(job.folderPath)
+      .then(job.resolve)
+      .catch(() => job.resolve(''))
+      .finally(() => {
+        activeFolderArtWorkers--;
+        pumpFolderArtQueue();
+      });
+  }
+}
+
+async function runFolderArtJob(folderPath) {
   if (folderArtCache[folderPath] !== undefined) return folderArtCache[folderPath];
   try {
     let subJ = await api('files/list_folder', { path: folderPath, recursive: false, include_mounted_folders: true });
@@ -1008,6 +1042,16 @@ async function getFolderArt(folderPath) {
   } catch (e) {}
   folderArtCache[folderPath] = '';
   return '';
+}
+
+function getFolderArt(folderPath) {
+  if (folderArtCache[folderPath] !== undefined) {
+    return Promise.resolve(folderArtCache[folderPath]);
+  }
+  return new Promise(resolve => {
+    folderArtQueue.push({ folderPath, resolve });
+    pumpFolderArtQueue();
+  });
 }
 
 let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
@@ -1117,17 +1161,6 @@ async function api(method, params) {
     throw new Error(msg || `Dropbox HTTP ${res.status}`);
   }
   return await res.json();
-}
-
-function preloadImage(url) {
-  if (!url) return Promise.resolve();
-  return new Promise(resolve => {
-    const img = new Image();
-    const timer = setTimeout(resolve, 1500);
-    img.onload = () => { clearTimeout(timer); resolve(); };
-    img.onerror = () => { clearTimeout(timer); resolve(); };
-    img.src = url;
-  });
 }
 
 function bindMediaSessionHandlers() {
@@ -1267,23 +1300,7 @@ async function openFolder(path, autoLoadAlbum = false) {
   }
 }
 
-async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
-  if (isAnimating) {
-    pendingTrayRequest = { audioFiles, albumName, albumPath, folderView, startIdx, autoPlayAfterLoad };
-    return;
-  }
-
-  // Stop-on-Disc-Change invariant: halt active audio and reset timer/scrubber
-  const loadSession = ++playSessionId;
-  A.pause();
-  A.removeAttribute('src');
-  stopSpin();
-  $('#time').textContent = '--:--';
-  $('#seek').value = 0;
-  updateSeekFill();
-
-  isAnimating = true;
-
+async function resolveAlbumCoverAsync(loadSession, albumPath, audioFiles, folderView) {
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
   if (imgFile) {
@@ -1300,12 +1317,32 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
     } catch (e) {}
   }
 
-  await preloadImage(resolvedCover);
+  if (!resolvedCover || loadSession !== playSessionId || currentAlbumPath !== albumPath) return;
 
-  if (loadSession !== playSessionId && !pendingTrayRequest) {
-    isAnimating = false;
+  folderArtCache[albumPath] = resolvedCover;
+  folderCoverUrl = resolvedCover;
+  coverUrl = resolvedCover;
+  draw();
+  drawLib();
+}
+
+async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
+  if (isAnimating) {
+    pendingTrayRequest = { audioFiles, albumName, albumPath, folderView, startIdx, autoPlayAfterLoad };
     return;
   }
+
+  // Stop-on-Disc-Change invariant: halt active audio and reset timer/scrubber
+  const loadSession = ++playSessionId;
+  activeTrackPath = '';
+  A.pause();
+  A.removeAttribute('src');
+  stopSpin();
+  $('#time').textContent = '--:--';
+  $('#seek').value = 0;
+  updateSeekFill();
+
+  isAnimating = true;
 
   const discEl = $('#disc');
 
@@ -1315,12 +1352,18 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
     discEl.classList.remove('ejecting');
   }
 
+  if (loadSession !== playSessionId && !pendingTrayRequest) {
+    isAnimating = false;
+    return;
+  }
+
+  const cachedArt = folderArtCache[albumPath] || '';
   tracks = audioFiles.slice();
   disc = albumName;
   currentAlbumPath = albumPath;
   idx = Math.max(0, Math.min(startIdx, tracks.length - 1));
-  folderCoverUrl = resolvedCover;
-  coverUrl = resolvedCover;
+  folderCoverUrl = cachedArt;
+  coverUrl = cachedArt;
 
   spinAngle = 0;
   const rotor = $('#disc-rotor');
@@ -1329,10 +1372,14 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
   draw();
   drawLib();
 
+  // Resolve cover art in background so disc insertion starts immediately without delay
+  resolveAlbumCoverAsync(loadSession, albumPath, audioFiles, folderView);
+
   discEl.classList.add('inserting');
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
   isAnimating = false;
+  pumpFolderArtQueue();
 
   if (pendingTrayRequest) {
     const nextReq = pendingTrayRequest;
@@ -1430,6 +1477,8 @@ function drawLib() {
   so.onclick = () => {
     ++playSessionId;
     ++folderSessionId;
+    pendingTrayRequest = null;
+    activeTrackPath = '';
     A.pause();
     A.removeAttribute('src');
     S = null;
@@ -1494,7 +1543,7 @@ function rowWithThumb(n, t, folderPath, fn) {
     icon.style.display = 'none';
   } else if (folderArtCache[folderPath] === undefined) {
     getFolderArt(folderPath).then(url => {
-      if (url) {
+      if (url && img.isConnected) {
         img.src = url;
         img.style.display = 'block';
         icon.style.display = 'none';
@@ -1528,11 +1577,11 @@ function draw() {
     artEl.src = coverUrl;
     discEl.classList.add('has-art');
   } else {
-    artEl.src = '';
+    artEl.removeAttribute('src');
     discEl.classList.remove('has-art');
   }
 
-  $('#lab').textContent = '';
+  $('#lab').textContent = tracks.length && !coverUrl ? disc : '';
   $('#trk').textContent = tracks.length > 0 ? `T${pad(idx + 1)}/${pad(tracks.length)}` : 'T--/--';
   $('#seek').disabled = !tracks.length;
   updateSeekFill();
@@ -1541,16 +1590,13 @@ function draw() {
 async function playIdx(i) {
   if (!tracks.length || i < 0 || i >= tracks.length) return;
   const sessionId = ++playSessionId;
-  if (!unlocked) {
-    A.src = SILENT;
-    try { await A.play(); } catch (e) {}
-    unlocked = true;
-    if (sessionId !== playSessionId) return;
-  }
   idx = i;
   const trackToPlay = tracks[idx];
   const albumAtStart = currentAlbumPath;
   const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  activeTrackPath = trackToPlay.path_lower;
+  retriedCurrentSrc = false;
+
   draw();
   drawLib();
   say(`Reading disc…${badge}`);
@@ -1560,6 +1606,7 @@ async function playIdx(i) {
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
     A.src = link;
+    A.load();
     await A.play();
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
@@ -1576,6 +1623,15 @@ async function playIdx(i) {
     }
   } catch (e) {
     if (sessionId === playSessionId) {
+      if (e && e.name === 'NotAllowedError' && !unlocked) {
+        try {
+          A.src = SILENT;
+          await A.play();
+          unlocked = true;
+          if (sessionId === playSessionId) playIdx(idx);
+          return;
+        } catch (_) {}
+      }
       say('Error: ' + e.message);
     }
   }
@@ -1583,11 +1639,13 @@ async function playIdx(i) {
 
 function stopPlayback() {
   ++playSessionId;
+  activeTrackPath = '';
+  retriedCurrentSrc = false;
   A.pause();
   stopSpin();
   A.currentTime = 0;
   $('#seek').value = 0;
-  $('#time').textContent = tracks.length ? '0:00' : '--:--';
+  $('#time').textContent = tracks.length ? '00:00' : '--:--';
   updateSeekFill();
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
   const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
@@ -1625,12 +1683,31 @@ function step(d) {
 }
 
 $('#pp').onclick = async () => {
-  if (isAnimating) return;
+  const currentFolder = stack[stack.length - 1];
+
+  if (isAnimating) {
+    const files = stack.length > 1 ? view.filter(isAudio) : tracks;
+    const targetAlbumPath = stack.length > 1 ? currentFolder.path : currentAlbumPath;
+    const targetAlbumName = stack.length > 1 ? currentFolder.name : disc;
+    if (files.length > 0) {
+      pendingTrayRequest = {
+        audioFiles: pendingTrayRequest ? pendingTrayRequest.audioFiles : files,
+        albumName: pendingTrayRequest ? pendingTrayRequest.albumName : targetAlbumName,
+        albumPath: pendingTrayRequest ? pendingTrayRequest.albumPath : targetAlbumPath,
+        folderView: pendingTrayRequest ? pendingTrayRequest.folderView : view,
+        startIdx: pendingTrayRequest ? pendingTrayRequest.startIdx : Math.max(idx, 0),
+        autoPlayAfterLoad: true
+      };
+      say('Loading disc…');
+    }
+    return;
+  }
+
   if (stack.length === 1 && !tracks.length) {
     say('Choose a CD folder first');
     return;
   }
-  const currentFolder = stack[stack.length - 1];
+
   if (stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)) {
     const files = view.filter(isAudio);
     if (files.length > 0) {
@@ -1638,10 +1715,12 @@ $('#pp').onclick = async () => {
       return;
     }
   }
+
   if (!tracks.length) {
     say('Choose a CD folder first');
     return;
   }
+
   if (!A.paused) {
     A.pause();
     stopSpin();
@@ -1697,6 +1776,8 @@ $('#eject').onclick = async () => {
   ++playSessionId;
   ++folderSessionId;
   pendingTrayRequest = null;
+  activeTrackPath = '';
+  retriedCurrentSrc = false;
   isAnimating = true;
 
   stopSpin();
@@ -1719,6 +1800,7 @@ $('#eject').onclick = async () => {
   updateSeekFill();
   say('Disc ejected');
   isAnimating = false;
+  pumpFolderArtQueue();
 
   stack = [{ path: '', name: 'TK_MusicPlayer' }];
   openFolder('', false);
@@ -1733,6 +1815,7 @@ $('#seek').oninput = e => {
 };
 
 A.onplay = () => {
+  unlocked = true;
   startSpin();
   $('#ppi').innerHTML = IC.pause;
   $('#pp').setAttribute('aria-label', 'Pause');
@@ -1767,8 +1850,28 @@ A.onended = () => {
   else step(1);
 };
 
-A.onerror = () => {
-  if (!A.src.startsWith('data:')) say('Cannot play this file');
+A.onerror = async () => {
+  if (!A.src || A.src.startsWith('data:')) return;
+  const sessionAtError = playSessionId;
+  const pathToRetry = activeTrackPath || (tracks[idx] && tracks[idx].path_lower);
+
+  if (pathToRetry && !retriedCurrentSrc) {
+    retriedCurrentSrc = true;
+    delete linkCache[pathToRetry];
+    try {
+      const freshLink = await getLink(pathToRetry, true);
+      if (sessionAtError !== playSessionId) return;
+      A.src = freshLink;
+      A.load();
+      await A.play();
+      return;
+    } catch (e) {
+      if (sessionAtError !== playSessionId) return;
+    }
+  }
+
+  stopSpin();
+  say('Cannot play this file');
 };
 
 bindMediaSessionHandlers();
