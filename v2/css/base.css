@@ -1,0 +1,98 @@
+/* ==========================================================
+   base.css — reset, page, chassis (deck) and header
+   Contains NO hard-coded colours: everything comes from the
+   active skin in css/skins/*.css
+   ========================================================== */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  background: var(--html-bg);
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.4;
+  padding: max(var(--space), env(safe-area-inset-top)) max(var(--space), env(safe-area-inset-right)) max(var(--space), env(safe-area-inset-bottom)) max(var(--space), env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Main Deck Enclosure */
+.deck {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  border-radius: var(--radius-deck);
+  padding: var(--space);
+  background: var(--deck-bg);
+  border: 1px solid var(--deck-border);
+  box-shadow: var(--deck-shadow);
+  transition: all 0.3s ease;
+}
+
+/* Industrial Header */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space);
+  padding: 0 2px;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
+}
+
+.top span {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--text-main);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-actions .mini {
+  padding: 5px 12px;
+  font-size: 11px;
+}
+
+/* Copyright Footer inside Chassis */
+.copyright-footer {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--divider-faint);
+  opacity: 0.7;
+  text-transform: uppercase;
+}

@@ -1,0 +1,97 @@
+/* ==========================================================
+   SKIN: Phosphor — green CRT terminal, monospace, squared corners
+   ========================================================== */
+:root {
+  color-scheme: dark;
+
+  --font-ui: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+  --radius-deck: 10px;
+  --radius-btn: 6px;
+  --space: 20px;
+
+  --html-bg: #050806;
+  --page-bg: radial-gradient(circle at 50% 0%, #10201a 0%, #050806 76%);
+  --tv-bg: #000000;
+
+  --text-main: #d6f7e2;
+  --text-muted: #6c9a7f;
+  --text-on-accent: #03140a;
+
+  --deck-bg: linear-gradient(175deg, #111b15 0%, #0a110d 45%, #070b08 100%);
+  --deck-border: #1f3226;
+  --deck-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.85),
+    0 0 40px rgba(57, 255, 136, 0.06),
+    inset 0 1px 0 rgba(57, 255, 136, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.8);
+  --divider: rgba(57, 255, 136, 0.12);
+  --divider-faint: rgba(57, 255, 136, 0.07);
+
+  --accent: #39ff88;
+  --accent-rgb: 57, 255, 136;
+  --accent-top: #72ffaa;
+  --accent-hover-top: #8affba;
+  --accent-hover-bottom: #4dff97;
+  --accent-border: #a0ffc6;
+
+  --well-from: #0b130e;
+  --well-to: #040705;
+  --well-shadow:
+    inset 0 14px 32px rgba(0, 0, 0, 0.98),
+    inset 0 0 0 2px #1f3226,
+    0 1px 0 rgba(57, 255, 136, 0.12);
+
+  --lcd-bg: #030604;
+  --lcd-fg: #39ff88;
+  --lcd-dim: #1f8f4c;
+  --lcd-text: #9dffc4;
+  --lcd-glow: rgba(57, 255, 136, 0.5);
+  --lcd-border: #1f3226;
+  --lcd-shadow: inset 0 4px 14px rgba(0, 0, 0, 0.95), 0 0 18px rgba(57, 255, 136, 0.07);
+
+  --btn-top: #1b2a21;
+  --btn-bottom: #121c16;
+  --btn-hover-top: #243629;
+  --btn-hover-bottom: #18251d;
+  --btn-border: #2b4233;
+  --btn-text: #d6f7e2;
+  --btn-shadow:
+    0 4px 0 #040605,
+    0 8px 14px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(57, 255, 136, 0.14);
+  --btn-shadow-active:
+    0 1px 0 #040605,
+    0 3px 6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(57, 255, 136, 0.1);
+  --btn-big-shadow:
+    0 4px 0 #0e7a3d,
+    0 8px 18px rgba(57, 255, 136, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --btn-big-shadow-active:
+    0 1px 0 #0e7a3d,
+    0 3px 8px rgba(57, 255, 136, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+  --mini-bg: #0f1713;
+  --mini-border: #26392d;
+  --mini-hover-bg: #16211b;
+  --mini-hover-border: #3a5845;
+
+  --scrub-track: #040705;
+  --scrub-border: #1f3226;
+  --scrub-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.95);
+  --thumb-from: #eafff2;
+  --thumb-to: #8fe8b2;
+  --thumb-edge: #0a110d;
+  --thumb-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 8px rgba(57, 255, 136, 0.35);
+
+  --lib-bg: #0a110d;
+  --lib-border: #1f3226;
+  --lib-float-bg: #0c140f;
+  --lib-float-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(57, 255, 136, 0.06);
+  --row-hover: #131e17;
+  --thumb-bg: #16221b;
+  --input-bg: #060a07;
+  --input-border: #24372b;
+}
