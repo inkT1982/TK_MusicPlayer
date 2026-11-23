@@ -107,9 +107,12 @@
     border-radius: 50%;
     padding: 12px;
     width: 100%;
-    max-width: 390px;
+    max-width: 342px;
+    aspect-ratio: 1;
     margin: 0 auto var(--space);
     overflow: hidden;
+    display: grid;
+    place-items: center;
     box-shadow:
       inset 0 14px 32px rgba(0, 0, 0, 0.98),
       inset 0 0 0 2px #2c2c32,
@@ -118,6 +121,8 @@
 
   .disc {
     position: relative;
+    width: 100%;
+    max-width: 318px;
     aspect-ratio: 1;
     border-radius: 50%;
     background:
@@ -135,8 +140,14 @@
         #c8ced6 360deg
       );
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
-    transition: filter 0.35s ease, opacity 0.35s ease;
+    transition: width 0.35s ease, max-width 0.35s ease, filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
+  }
+
+  /* 8cm Mini CD Single */
+  .disc.mini-cd {
+    width: 170px;
+    max-width: 170px;
   }
 
   .well-shadow {
@@ -455,6 +466,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding-top: var(--space);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
@@ -467,14 +479,19 @@
     border: 1px solid #323236;
     background: #1d1d20;
     border-radius: 999px;
-    padding: 7px 12px;
+    padding: 7px 11px;
     cursor: pointer;
     color: var(--text-muted);
     display: inline-flex;
     gap: 6px;
     align-items: center;
+    justify-content: center;
     white-space: nowrap;
     transition: all 0.15s ease;
+  }
+
+  .mini.icon-only {
+    padding: 7px 11px;
   }
 
   .mini:hover {
@@ -501,6 +518,10 @@
   .mini[aria-pressed=true] .led {
     background: var(--braun-orange);
     box-shadow: 0 0 8px var(--braun-orange);
+  }
+
+  .mini[aria-pressed=true] svg {
+    color: var(--braun-orange);
   }
 
   /* Copyright Footer inside Chassis */
@@ -690,7 +711,7 @@
     padding-top: 10px !important;
   }
 
-  /* LANDSCAPE LAYOUT: 7% SMALLER CD, LOWERED HEADER BY 10PX, SYMMETRICAL PADDING, 5% SMALLER BUTTONS */
+  /* LANDSCAPE LAYOUT */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
@@ -698,7 +719,7 @@
       align-items: center;
       min-height: 100vh;
       overflow-y: auto;
-      padding: 24px; /* Symmetrical top/bottom outer margins */
+      padding: 24px;
     }
     .deck {
       max-width: 790px;
@@ -706,15 +727,14 @@
       height: auto;
       max-height: 92vh;
       display: grid;
-      grid-template-columns: 342px 1fr; /* 7% smaller CD well (368px -> 342px) */
+      grid-template-columns: 342px 1fr;
       gap: 24px;
       align-content: center;
       align-items: center;
-      padding: 24px; /* Symmetrical inner padding */
+      padding: 24px;
       position: relative;
       overflow: visible;
     }
-    /* Left Side: CD Well */
     .deck .well {
       grid-column: 1;
       grid-row: 1 / span 6;
@@ -722,11 +742,10 @@
       max-width: 342px;
       margin: 0;
     }
-    /* Right Side: Grouped Controls */
     .deck .top {
       grid-column: 2;
       grid-row: 1;
-      margin-top: 10px; /* Lowered header by 10px */
+      margin-top: 10px;
       margin-bottom: 0;
       height: 32px;
     }
@@ -746,7 +765,7 @@
       margin: 0;
     }
     .deck .btns .btn {
-      height: 45px; /* 5% smaller than 48px */
+      height: 45px;
     }
     .deck .tools {
       grid-column: 2;
@@ -761,13 +780,12 @@
       margin-top: 4px;
       padding-top: 6px;
     }
-    /* Clean popup window positioned right below the lowered Library button */
     .lib {
       position: absolute;
-      top: 74px; /* Lowered by 10px to match header */
+      top: 74px;
       right: 24px;
       width: 350px;
-      max-height: 285px; /* Shorter to account for lower top offset */
+      max-height: 285px;
       background: #141416;
       border: 1px solid #2a2a2e;
       border-radius: 16px;
@@ -815,9 +833,16 @@
     <button class="btn" id="stop" aria-label="Stop"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
   </div>
   <div class="tools">
-    <button class="mini" id="shuf" aria-pressed="false"><span class="led"></span>Shuffle</button>
+    <button class="mini icon-only" id="shuf" aria-pressed="false" aria-label="Shuffle" title="Shuffle">
+      <span class="led"></span>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+    </button>
+    <button class="mini icon-only" id="rep" aria-pressed="false" aria-label="Repeat: Off" title="Repeat: Off">
+      <span class="led"></span>
+      <svg viewBox="0 0 24 24" width="14" height="14" id="rep-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </button>
     <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
-    <button class="mini" id="eject"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>Eject</button>
+    <button class="mini icon-only" id="eject" aria-label="Eject" title="Eject"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg></button>
   </div>
 
   <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
@@ -825,15 +850,39 @@
   <section class="lib" id="lib"></section>
 </main>
 
-<audio id="a" preload="auto"></audio>
+<audio id="a" preload="auto" playsinline></audio>
 
 <script>
-const CLIENT_ID = 'dtcnff0rr7py9qc'; // Replace with your Dropbox App Key
+const CLIENT_ID = 'dtcnff0rr7py9qc';
 
-const $=s=>document.querySelector(s);
-const A=$('#a'),SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-const IC={play:'<path d="M7 4v16l13-8z"/>',pause:'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'};
-let S=null,stack=[{path:'',name:'TK_MusicPlayer'}],view=[],tracks=[],disc='',currentAlbumPath='',idx=-1,shuffle=false,unlocked=false,folderCoverUrl='',coverUrl='',isAnimating=false,playSessionId=0;
+const $ = s => document.querySelector(s);
+const A = $('#a');
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+const IC = {
+  play: '<path d="M7 4v16l13-8z"/>',
+  pause: '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'
+};
+const REP_IC = {
+  loop: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  one: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="12" y="15.5" text-anchor="middle" font-size="8.5" font-weight="700" font-family="ui-monospace, monospace" fill="currentColor" stroke="none">1</text>'
+};
+
+let S = null;
+let stack = [{ path: '', name: 'TK_MusicPlayer' }];
+let view = [];
+let tracks = [];
+let disc = '';
+let currentAlbumPath = '';
+let idx = -1;
+let shuffle = false;
+let repeatMode = 'off'; // 'off' | 'all' | 'one'
+let unlocked = false;
+let folderCoverUrl = '';
+let coverUrl = '';
+let isAnimating = false;
+let playSessionId = 0;
+let folderSessionId = 0;
+let pendingTrayRequest = null;
 
 // PKCE Helper Functions
 function generateCodeVerifier() {
@@ -859,27 +908,27 @@ async function startLogin() {
 }
 
 let linkCache = {};
-async function getLink(path){
-  if(linkCache[path]) return linkCache[path];
-  const j=await api('files/get_temporary_link',{path});
-  linkCache[path]=j.link;
+async function getLink(path) {
+  if (linkCache[path]) return linkCache[path];
+  const j = await api('files/get_temporary_link', { path });
+  linkCache[path] = j.link;
   return j.link;
 }
-function prefetchLink(path){
-  if(!path || linkCache[path])return;
-  api('files/get_temporary_link',{path}).then(j=>{
-    linkCache[path]=j.link;
-  }).catch(()=>{});
+function prefetchLink(path) {
+  if (!path || linkCache[path]) return;
+  api('files/get_temporary_link', { path }).then(j => {
+    linkCache[path] = j.link;
+  }).catch(() => {});
 }
 
-async function extractEmbeddedArt(audioUrl){
-  if(!window.jsmediatags) return '';
+async function extractEmbeddedArt(audioUrl) {
+  if (!window.jsmediatags) return '';
   try {
     const response = await fetch(audioUrl);
     const reader = response.body.getReader();
     let chunks = [];
     let receivedLength = 0;
-    
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -893,7 +942,7 @@ async function extractEmbeddedArt(audioUrl){
 
     let position = 0;
     let totalArray = new Uint8Array(receivedLength);
-    for(let chunk of chunks) {
+    for (let chunk of chunks) {
       totalArray.set(chunk, position);
       position += chunk.length;
     }
@@ -904,114 +953,118 @@ async function extractEmbeddedArt(audioUrl){
       window.jsmediatags.read(blob, {
         onSuccess: tag => {
           const pic = tag.tags && tag.tags.picture;
-          if(pic && pic.data){
-            let base64='';
+          if (pic && pic.data) {
+            let base64 = '';
             const bytes = new Uint8Array(pic.data);
-            for(let i = 0; i < bytes.byteLength; i++) base64 += String.fromCharCode(bytes[i]);
+            for (let i = 0; i < bytes.byteLength; i++) base64 += String.fromCharCode(bytes[i]);
             resolve(`data:${pic.format || 'image/jpeg'};base64,${window.btoa(base64)}`);
-          }else{
+          } else {
             resolve('');
           }
         },
         onError: () => resolve('')
       });
     });
-  } catch(e) {
+  } catch (e) {
     return '';
   }
 }
 
 let folderArtCache = {};
-async function getFolderArt(folderPath){
-  if(folderArtCache[folderPath] !== undefined) return folderArtCache[folderPath];
-  try{
-    let subJ = await api('files/list_folder',{path:folderPath,recursive:false,include_mounted_folders:true});
-    let subEntries = subJ.entries||[];
-    
+async function getFolderArt(folderPath) {
+  if (folderArtCache[folderPath] !== undefined) return folderArtCache[folderPath];
+  try {
+    let subJ = await api('files/list_folder', { path: folderPath, recursive: false, include_mounted_folders: true });
+    let subEntries = subJ.entries || [];
+
     const imgFile = subEntries.find(isImage);
-    if(imgFile){
-      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+    if (imgFile) {
+      const linkRes = await api('files/get_temporary_link', { path: imgFile.path_lower });
       folderArtCache[folderPath] = linkRes.link;
       return linkRes.link;
     }
 
     const audioFiles = subEntries.filter(isAudio);
-    if(audioFiles.length > 0){
+    if (audioFiles.length > 0) {
       const audioLink = await getLink(audioFiles[0].path_lower);
       const embeddedArt = await extractEmbeddedArt(audioLink);
-      if(embeddedArt){
+      if (embeddedArt) {
         folderArtCache[folderPath] = embeddedArt;
         return embeddedArt;
       }
     }
-  }catch(e){}
+  } catch (e) {}
   folderArtCache[folderPath] = '';
   return '';
 }
 
 let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
-function animateSpin(timestamp){
-  if(!isSpinning)return;
-  if(!lastTime)lastTime=timestamp;
-  const delta=timestamp-lastTime;
-  lastTime=timestamp;
-  spinAngle=(spinAngle+delta*0.06)%360;
-  const rotor=$('#disc-rotor');
-  if(rotor)rotor.style.transform=`rotate(${spinAngle}deg)`;
-  spinReq=requestAnimationFrame(animateSpin);
+function animateSpin(timestamp) {
+  if (!isSpinning) return;
+  if (!lastTime) lastTime = timestamp;
+  const delta = timestamp - lastTime;
+  lastTime = timestamp;
+  spinAngle = (spinAngle + delta * 0.06) % 360;
+  const rotor = $('#disc-rotor');
+  if (rotor) rotor.style.transform = `rotate(${spinAngle}deg)`;
+  spinReq = requestAnimationFrame(animateSpin);
 }
-function startSpin(){
-  if(isSpinning)return;
-  isSpinning=true;
-  lastTime=null;
-  spinReq=requestAnimationFrame(animateSpin);
+function startSpin() {
+  if (isSpinning) return;
+  isSpinning = true;
+  lastTime = null;
+  spinReq = requestAnimationFrame(animateSpin);
 }
-function stopSpin(){
-  isSpinning=false;
-  if(spinReq){cancelAnimationFrame(spinReq);spinReq=null;}
+function stopSpin() {
+  isSpinning = false;
+  if (spinReq) {
+    cancelAnimationFrame(spinReq);
+    spinReq = null;
+  }
 }
 
-const save=v=>{try{v?localStorage.setItem('tk_dbx_auth',JSON.stringify(v)):localStorage.removeItem('tk_dbx_auth')}catch(e){}};
-const load=()=>{try{return JSON.parse(localStorage.getItem('tk_dbx_auth'))}catch(e){return null}};
-const fmt=t=>isFinite(t)?Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'):'--:--';
-const pad=n=>String(n).padStart(2,'0');
-const say=t=>$('#msg').textContent=t;
-const isAudio=f=>f['.tag']==='file'&&/\.(mp3|flac|m4a|aac|wav|ogg)$/i.test(f.name);
-const isImage=f=>f['.tag']==='file'&&/\.(jpg|jpeg|png|webp|gif)$/i.test(f.name);
-const clean=n=>n.replace(/\.[^.]+$/,'');
+const save = v => { try { v ? localStorage.setItem('tk_dbx_auth', JSON.stringify(v)) : localStorage.removeItem('tk_dbx_auth'); } catch (e) {} };
+const load = () => { try { return JSON.parse(localStorage.getItem('tk_dbx_auth')); } catch (e) { return null; } };
+const fmt = t => isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '--:--';
+const pad = n => String(n).padStart(2, '0');
+const say = t => $('#msg').textContent = t;
+const isAudio = f => f['.tag'] === 'file' && /\.(mp3|flac|m4a|aac|wav|ogg)$/i.test(f.name);
+const isImage = f => f['.tag'] === 'file' && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name);
+const clean = n => n.replace(/\.[^.]+$/, '');
+const isMiniSingle = list => list.length > 0 && list.length <= 4;
 
-function updateSeekFill(){
-  const el=$('#seek');
-  const pct=(el.value/el.max)*100;
-  el.style.background=el.disabled?'#0c0c0e':`linear-gradient(90deg, var(--braun-orange) ${pct}%, #0c0c0e ${pct}%)`;
+function updateSeekFill() {
+  const el = $('#seek');
+  const pct = (el.value / el.max) * 100;
+  el.style.background = el.disabled ? '#0c0c0e' : `linear-gradient(90deg, var(--braun-orange) ${pct}%, #0c0c0e ${pct}%)`;
 }
 
 async function refreshAccessToken() {
-  if(!S || !S.refresh_token) return false;
+  if (!S || !S.refresh_token) return false;
   try {
     const res = await fetch('https://api.dropbox.com/oauth2/token', {
       method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: S.refresh_token,
         client_id: CLIENT_ID
       })
     });
-    if(!res.ok) return false;
+    if (!res.ok) return false;
     const data = await res.json();
     S.token = data.access_token;
-    if(data.refresh_token) S.refresh_token = data.refresh_token;
+    if (data.refresh_token) S.refresh_token = data.refresh_token;
     save(S);
     return true;
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 }
 
-async function api(method, params){
-  if(!S || !S.token) throw new Error('Not authenticated');
-  
+async function api(method, params) {
+  if (!S || !S.token) throw new Error('Not authenticated');
+
   let res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
     method: 'POST',
     headers: {
@@ -1021,9 +1074,9 @@ async function api(method, params){
     body: JSON.stringify(params)
   });
 
-  if(res.status === 401){
+  if (res.status === 401) {
     const refreshed = await refreshAccessToken();
-    if(refreshed) {
+    if (refreshed) {
       res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
         method: 'POST',
         headers: {
@@ -1033,26 +1086,28 @@ async function api(method, params){
         body: JSON.stringify(params)
       });
     } else {
-      S = null; save(null); showLogin('Session expired. Please sign in again.');
+      S = null;
+      save(null);
+      showLogin('Session expired. Please sign in again.');
       throw new Error('Session expired');
     }
   }
 
-  if(!res.ok){
+  if (!res.ok) {
     const rawText = await res.text();
     let msg = rawText;
     try {
       const errJson = JSON.parse(rawText);
       msg = errJson.error_summary || errJson.user_message || rawText;
-    } catch(e){}
+    } catch (e) {}
     throw new Error(msg || `Dropbox HTTP ${res.status}`);
   }
   return await res.json();
 }
 
-function preloadImage(url){
-  if(!url)return Promise.resolve();
-  return new Promise(resolve=>{
+function preloadImage(url) {
+  if (!url) return Promise.resolve();
+  return new Promise(resolve => {
     const img = new Image();
     const timer = setTimeout(resolve, 1500);
     img.onload = () => { clearTimeout(timer); resolve(); };
@@ -1061,198 +1116,387 @@ function preloadImage(url){
   });
 }
 
-function updateMediaSession(titleText, albumText, artSrc){
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: titleText,
-      artist: 'TK-100 Compact Disc',
-      album: albumText,
-      artwork: artSrc ? [{ src: artSrc, sizes: '512x512', type: 'image/jpeg' }] : []
+/* iOS Lock Screen & Control Center MediaSession Configuration */
+function bindMediaSessionHandlers() {
+  if (!('mediaSession' in navigator)) return;
+  const m = navigator.mediaSession;
+
+  // Explicitly clear seekbackward/seekforward so iOS shows Previous/Next track buttons instead of ±10s skip buttons
+  try { m.setActionHandler('seekbackward', null); } catch (e) {}
+  try { m.setActionHandler('seekforward', null); } catch (e) {}
+
+  try {
+    m.setActionHandler('play', () => {
+      if (!tracks.length) return;
+      if (A.src && !A.src.startsWith('data:') && A.paused) {
+        A.play().catch(() => playIdx(Math.max(idx, 0)));
+      } else {
+        playIdx(Math.max(idx, 0));
+      }
     });
-  }
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('pause', () => {
+      A.pause();
+      stopSpin();
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('stop', () => {
+      stopPlayback();
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('previoustrack', () => {
+      if (A.currentTime > 3) {
+        A.currentTime = 0;
+        syncMediaPosition();
+      } else {
+        step(-1);
+      }
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('nexttrack', () => {
+      step(1);
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('seekto', details => {
+      if (details && isFinite(details.seekTime) && isFinite(A.duration)) {
+        A.currentTime = Math.max(0, Math.min(details.seekTime, A.duration));
+        syncMediaPosition();
+      }
+    });
+  } catch (e) {}
 }
 
-function showLogin(note){
+function syncMediaPosition() {
+  if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+  if (!isFinite(A.duration) || A.duration <= 0) return;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: A.duration,
+      playbackRate: A.playbackRate || 1,
+      position: Math.min(A.currentTime || 0, A.duration)
+    });
+  } catch (e) {}
+}
+
+function updateMediaSession(titleText, albumText, artSrc) {
+  if (!('mediaSession' in navigator)) return;
+  bindMediaSessionHandlers();
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: titleText,
+    artist: 'TK-100 Compact Disc',
+    album: albumText,
+    artwork: artSrc ? [
+      { src: artSrc, sizes: '256x256', type: 'image/jpeg' },
+      { src: artSrc, sizes: '512x512', type: 'image/jpeg' }
+    ] : []
+  });
+  syncMediaPosition();
+}
+
+function showLogin(note) {
   const lib = $('#lib');
   lib.classList.add('open');
   $('#lib-toggle').setAttribute('aria-expanded', 'true');
-  lib.innerHTML=`<h2>Connect to Dropbox</h2>
+  lib.innerHTML = `<h2>Connect to Dropbox</h2>
   <button class="go" id="login-btn">Sign in with Dropbox</button>
-  <p class="note">${note||'Sign in securely through Dropbox. This establishes a permanent connection with automatic token refreshing.'}</p>`;
+  <p class="note">${note || 'Sign in securely through Dropbox. This establishes a permanent connection with automatic token refreshing.'}</p>`;
   $('#login-btn').onclick = startLogin;
 }
 
-async function openFolder(path){
-  say('Reading…');
-  try{
-    let j=await api('files/list_folder',{path:path,recursive:false,include_mounted_folders:true});
-    let entries=j.entries||[];
-    while(j.has_more&&j.cursor){
-      j=await api('files/list_folder/continue',{cursor:j.cursor});
-      entries=entries.concat(j.entries||[]);
-    }
-    view=entries
-      .filter(f=>f['.tag']==='folder'||isAudio(f)||isImage(f))
-      .sort((a,b)=>((b['.tag']==='folder'?1:0)-(a['.tag']==='folder'?1:0))||a.name.localeCompare(b.name,undefined,{numeric:true}));
-    
-    const audioFiles = view.filter(isAudio);
+async function listFolderAll(path) {
+  let j = await api('files/list_folder', { path, recursive: false, include_mounted_folders: true });
+  let entries = j.entries || [];
+  while (j.has_more && j.cursor) {
+    j = await api('files/list_folder/continue', { cursor: j.cursor });
+    entries = entries.concat(j.entries || []);
+  }
+  return entries
+    .filter(f => f['.tag'] === 'folder' || isAudio(f) || isImage(f))
+    .sort((a, b) => ((b['.tag'] === 'folder' ? 1 : 0) - (a['.tag'] === 'folder' ? 1 : 0)) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+}
 
-    if(stack.length === 1) {
+async function openFolder(path, autoLoadAlbum = false) {
+  const fSession = ++folderSessionId;
+  say('Reading…');
+  try {
+    const entries = await listFolderAll(path);
+    if (fSession !== folderSessionId) return; // Ignore stale folder responses
+
+    view = entries;
+    const audioFiles = view.filter(isAudio);
+    const currentFolder = stack[stack.length - 1];
+
+    if (stack.length === 1) {
       say('Choose a CD folder');
-    } else if(audioFiles.length > 0) {
-      say(tracks.length > 0 && currentAlbumPath === stack[stack.length-1].path ? `CD Loaded: ${disc}` : 'CD ready - choose a track');
+    } else if (audioFiles.length > 0) {
+      if (tracks.length > 0 && currentAlbumPath === currentFolder.path) {
+        const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+        say(`CD Loaded: ${disc}${badge}`);
+      } else {
+        say('CD ready - choose a track');
+      }
     } else {
-      say(view.some(f=>f['.tag']==='folder') ? 'Choose a sub-folder' : 'Folder is empty');
+      say(view.some(f => f['.tag'] === 'folder') ? 'Choose a sub-folder' : 'Folder is empty');
     }
 
     drawLib();
     draw();
-  }catch(e){
+
+    if (autoLoadAlbum && audioFiles.length > 0 && currentAlbumPath !== currentFolder.path) {
+      await loadAlbumIntoTray(audioFiles, currentFolder.name, currentFolder.path, view, 0, false);
+    }
+  } catch (e) {
+    if (fSession !== folderSessionId) return;
     say('Error: ' + e.message);
     showLogin('Connection failed: ' + e.message + '. Please check authorization.');
   }
 }
 
-async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0){
-  if(isAnimating) return;
-  if(currentAlbumPath === albumPath) return;
+async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
+  // If an animation is currently running, record the latest user selection so it executes immediately after
+  if (isAnimating) {
+    pendingTrayRequest = { audioFiles, albumName, albumPath, folderView, startIdx, autoPlayAfterLoad };
+    return;
+  }
+
+  // Stop-on-Disc-Change invariant: immediately halt any playing audio & reset timer/scrubber
+  const loadSession = ++playSessionId;
+  A.pause();
+  A.removeAttribute('src');
+  stopSpin();
+  $('#time').textContent = '--:--';
+  $('#seek').value = 0;
+  updateSeekFill();
 
   isAnimating = true;
 
   let resolvedCover = '';
   const imgFile = folderView.find(isImage);
-  if(imgFile){
-    try{
-      const linkRes = await api('files/get_temporary_link',{path:imgFile.path_lower});
+  if (imgFile) {
+    try {
+      const linkRes = await api('files/get_temporary_link', { path: imgFile.path_lower });
       resolvedCover = linkRes.link;
-    }catch(e){}
+    } catch (e) {}
   }
 
-  if(!resolvedCover && audioFiles.length > 0){
-    try{
+  if (!resolvedCover && audioFiles.length > 0) {
+    try {
       const firstLink = await getLink(audioFiles[0].path_lower);
       resolvedCover = await extractEmbeddedArt(firstLink);
-    }catch(e){}
+    } catch (e) {}
   }
 
   await preloadImage(resolvedCover);
 
+  if (loadSession !== playSessionId && !pendingTrayRequest) {
+    isAnimating = false;
+    return;
+  }
+
   const discEl = $('#disc');
-  
-  if(tracks.length > 0 && currentAlbumPath && currentAlbumPath !== albumPath){
-    stopSpin();
+
+  if (tracks.length > 0 && currentAlbumPath && currentAlbumPath !== albumPath) {
     discEl.classList.add('ejecting');
     await new Promise(r => setTimeout(r, 900));
     discEl.classList.remove('ejecting');
   }
 
-  tracks = audioFiles;
+  tracks = audioFiles.slice();
   disc = albumName;
   currentAlbumPath = albumPath;
-  idx = startIdx;
+  idx = Math.max(0, Math.min(startIdx, tracks.length - 1));
   folderCoverUrl = resolvedCover;
   coverUrl = resolvedCover;
 
   spinAngle = 0;
   const rotor = $('#disc-rotor');
-  if(rotor) rotor.style.transform = 'rotate(0deg)';
+  if (rotor) rotor.style.transform = 'rotate(0deg)';
 
   draw();
+  drawLib();
 
   discEl.classList.add('inserting');
   await new Promise(r => setTimeout(r, 1100));
   discEl.classList.remove('inserting');
   isAnimating = false;
 
-  say(`CD Loaded: ${albumName} - ready to play`);
+  // If user clicked another album or track while disc was animating, execute that immediately
+  if (pendingTrayRequest) {
+    const nextReq = pendingTrayRequest;
+    pendingTrayRequest = null;
+    if (nextReq.albumPath === currentAlbumPath) {
+      if (nextReq.autoPlayAfterLoad) {
+        playIdx(nextReq.startIdx);
+      } else {
+        idx = nextReq.startIdx;
+        draw();
+        drawLib();
+      }
+    } else {
+      await loadAlbumIntoTray(
+        nextReq.audioFiles,
+        nextReq.albumName,
+        nextReq.albumPath,
+        nextReq.folderView,
+        nextReq.startIdx,
+        nextReq.autoPlayAfterLoad
+      );
+    }
+    return;
+  }
+
+  const miniBadge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  say(`CD Loaded: ${albumName}${miniBadge} - ready to play`);
+
+  if (autoPlayAfterLoad) {
+    playIdx(idx);
+  }
 }
 
-function drawLib(){
-  const lib=$('#lib');
-  lib.innerHTML=`<h2>${stack.length===1&&!tracks.length?'Choose a CD':stack.map(s=>s.name).join(' / ')}</h2>`;
-  if(stack.length>1)lib.append(row('↑','Back',null,()=>{stack.pop();openFolder(stack[stack.length-1].path)}));
-  
-  const files=view.filter(isAudio);
-  const hasSubfolders = view.some(f=>f['.tag']==='folder');
+function drawLib() {
+  const lib = $('#lib');
+  const currentFolder = stack[stack.length - 1];
+  lib.innerHTML = `<h2>${stack.length === 1 && !tracks.length ? 'Choose a CD' : stack.map(s => s.name).join(' / ')}</h2>`;
 
-  view.forEach(f=>{
-    if(f['.tag']==='folder'){
-      const r = rowWithThumb('▸', f.name, f.path_lower, async ()=>{
-        try {
-          let subJ = await api('files/list_folder',{path:f.path_lower,recursive:false,include_mounted_folders:true});
-          let subEntries = subJ.entries||[];
-          while(subJ.has_more&&subJ.cursor){
-            subJ = await api('files/list_folder/continue',{cursor:subJ.cursor});
-            subEntries = subEntries.concat(subJ.entries||[]);
-          }
-          const subAudioFiles = subEntries
-            .filter(isAudio)
-            .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-          
-          stack.push({path:f.path_lower,name:f.name});
-          openFolder(f.path_lower);
+  if (stack.length > 1) {
+    lib.append(row('↑', 'Back', null, () => {
+      stack.pop();
+      openFolder(stack[stack.length - 1].path, false);
+    }));
+  }
 
-          if(subAudioFiles.length > 0 && currentAlbumPath !== f.path_lower){
-            await loadAlbumIntoTray(subAudioFiles, f.name, f.path_lower, subEntries, 0);
-          }
-        } catch(e) {
-          stack.push({path:f.path_lower,name:f.name});
-          openFolder(f.path_lower);
-        }
+  const files = view.filter(isAudio);
+  const hasSubfolders = view.some(f => f['.tag'] === 'folder');
+
+  view.forEach(f => {
+    if (f['.tag'] === 'folder') {
+      const r = rowWithThumb('▸', f.name, f.path_lower, () => {
+        stack.push({ path: f.path_lower, name: f.name });
+        openFolder(f.path_lower, true);
       });
       lib.append(r);
-    }else if(isAudio(f)){
-      const n=files.indexOf(f);
-      const albumFolder = stack[stack.length-1];
-      const r=row(pad(n+1),clean(f.name),null,async ()=>{
-        if(currentAlbumPath !== albumFolder.path){
-          await loadAlbumIntoTray(files, albumFolder.name, albumFolder.path, view, n);
-          playIdx(n);
+    } else if (isAudio(f)) {
+      const n = files.indexOf(f);
+      const albumSnapshot = files.slice();
+      const viewSnapshot = view.slice();
+      const folderPath = currentFolder.path;
+      const folderName = currentFolder.name;
+
+      const r = row(pad(n + 1), clean(f.name), null, async () => {
+        if (isAnimating && pendingTrayRequest && pendingTrayRequest.albumPath === folderPath) {
+          pendingTrayRequest.startIdx = n;
+          pendingTrayRequest.autoPlayAfterLoad = true;
+          return;
+        }
+        if (currentAlbumPath !== folderPath) {
+          await loadAlbumIntoTray(albumSnapshot, folderName, folderPath, viewSnapshot, n, true);
+        } else if (isAnimating) {
+          pendingTrayRequest = {
+            audioFiles: albumSnapshot,
+            albumName: folderName,
+            albumPath: folderPath,
+            folderView: viewSnapshot,
+            startIdx: n,
+            autoPlayAfterLoad: true
+          };
         } else {
           playIdx(n);
         }
       });
-      if(currentAlbumPath === albumFolder.path && tracks === files && idx===n)r.classList.add('cur');
+
+      if (currentAlbumPath === folderPath && idx === n) {
+        r.classList.add('cur');
+      }
       lib.append(r);
     }
   });
 
-  if(!hasSubfolders && files.length === 0) {
-    lib.insertAdjacentHTML('beforeend','<p class="note">This folder has no music or sub-folders.</p>');
+  if (!hasSubfolders && files.length === 0) {
+    lib.insertAdjacentHTML('beforeend', '<p class="note">This folder has no music or sub-folders.</p>');
   }
 
-  const so=document.createElement('button');so.className='mini';so.style.marginTop='12px';so.textContent='Sign out';
-  so.onclick=()=>{A.pause();A.removeAttribute('src');S=null;save(null);tracks=[];idx=-1;disc='';currentAlbumPath='';folderCoverUrl='';coverUrl='';stopSpin();draw();showLogin()};
+  const so = document.createElement('button');
+  so.className = 'mini';
+  so.style.marginTop = '12px';
+  so.textContent = 'Sign out';
+  so.onclick = () => {
+    ++playSessionId;
+    ++folderSessionId;
+    A.pause();
+    A.removeAttribute('src');
+    S = null;
+    save(null);
+    tracks = [];
+    idx = -1;
+    disc = '';
+    currentAlbumPath = '';
+    folderCoverUrl = '';
+    coverUrl = '';
+    stopSpin();
+    draw();
+    showLogin();
+  };
   lib.append(so);
 }
 
-function row(n,t,thumbUrl,fn){
-  const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
-  const icon = document.createElement('i'); icon.textContent = n;
-  const img = document.createElement('img'); img.className = 'thumb';
-  if(thumbUrl){ img.src = thumbUrl; img.style.display = 'block'; icon.style.display = 'none'; }
-  const span = document.createElement('span'); span.textContent = t;
+function row(n, t, thumbUrl, fn) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.tabIndex = 0;
+  d.setAttribute('role', 'button');
+  const icon = document.createElement('i');
+  icon.textContent = n;
+  const img = document.createElement('img');
+  img.className = 'thumb';
+  if (thumbUrl) {
+    img.src = thumbUrl;
+    img.style.display = 'block';
+    icon.style.display = 'none';
+  }
+  const span = document.createElement('span');
+  span.textContent = t;
   d.append(icon, img, span);
-  d.onclick=fn;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}};
+  d.onclick = fn;
+  d.onkeydown = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
+    }
+  };
   return d;
 }
 
-function rowWithThumb(n, t, folderPath, fn){
-  const d=document.createElement('div');d.className='row';d.tabIndex=0;d.setAttribute('role','button');
-  const icon = document.createElement('i'); icon.textContent = n;
-  const img = document.createElement('img'); img.className = 'thumb';
-  
-  if(currentAlbumPath === folderPath && coverUrl){
+function rowWithThumb(n, t, folderPath, fn) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.tabIndex = 0;
+  d.setAttribute('role', 'button');
+  const icon = document.createElement('i');
+  icon.textContent = n;
+  const img = document.createElement('img');
+  img.className = 'thumb';
+
+  if (currentAlbumPath === folderPath && coverUrl) {
     img.src = coverUrl;
     img.style.display = 'block';
     icon.style.display = 'none';
-  } else if(folderArtCache[folderPath]){
+  } else if (folderArtCache[folderPath]) {
     img.src = folderArtCache[folderPath];
     img.style.display = 'block';
     icon.style.display = 'none';
-  } else if(folderArtCache[folderPath] === undefined){
-    getFolderArt(folderPath).then(url=>{
-      if(url){
+  } else if (folderArtCache[folderPath] === undefined) {
+    getFolderArt(folderPath).then(url => {
+      if (url) {
         img.src = url;
         img.style.display = 'block';
         icon.style.display = 'none';
@@ -1260,102 +1504,197 @@ function rowWithThumb(n, t, folderPath, fn){
     });
   }
 
-  const span = document.createElement('span'); span.textContent = t;
+  const span = document.createElement('span');
+  span.textContent = t;
   d.append(icon, img, span);
-  d.onclick=fn;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}};
+  d.onclick = fn;
+  d.onkeydown = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
+    }
+  };
   return d;
 }
 
-const cur=()=>tracks[idx]||{name:''};
-function draw(){
-  const discEl=$('#disc');
-  const artEl=$('#disc-art');
-  
-  discEl.classList.toggle('empty',!tracks.length && !coverUrl);
-  
-  if(coverUrl){
-    artEl.src=coverUrl;
+const cur = () => tracks[idx] || { name: '' };
+
+function draw() {
+  const discEl = $('#disc');
+  const artEl = $('#disc-art');
+
+  discEl.classList.toggle('empty', !tracks.length && !coverUrl);
+  discEl.classList.toggle('mini-cd', isMiniSingle(tracks));
+
+  if (coverUrl) {
+    artEl.src = coverUrl;
     discEl.classList.add('has-art');
-  }else{
-    artEl.src='';
+  } else {
+    artEl.src = '';
     discEl.classList.remove('has-art');
   }
 
-  $('#lab').textContent='';
-  $('#trk').textContent=tracks.length>0?`T${pad(idx+1)}/${pad(tracks.length)}`:'T--/--';
-  $('#seek').disabled=!tracks.length;
+  $('#lab').textContent = '';
+  $('#trk').textContent = tracks.length > 0 ? `T${pad(idx + 1)}/${pad(tracks.length)}` : 'T--/--';
+  $('#seek').disabled = !tracks.length;
   updateSeekFill();
 }
 
-async function playIdx(i){
+async function playIdx(i) {
+  if (!tracks.length || i < 0 || i >= tracks.length) return;
   const sessionId = ++playSessionId;
-  if(!unlocked){A.src=SILENT;A.play().catch(()=>{});unlocked=true}
-  idx=i;
-  draw();
-  say('Reading disc…');
 
+  if (!unlocked) {
+    A.src = SILENT;
+    try { await A.play(); } catch (e) {}
+    unlocked = true;
+    if (sessionId !== playSessionId) return;
+  }
+
+  idx = i;
   const trackToPlay = tracks[idx];
-  if(!trackToPlay) return;
+  const albumAtStart = currentAlbumPath;
+  const miniTag = isMiniSingle(tracks) ? ' [8cm Single]' : '';
 
-  try{
+  draw();
+  drawLib();
+  say(`Reading disc…${miniTag}`);
+
+  try {
     const link = await getLink(trackToPlay.path_lower);
-    if(sessionId !== playSessionId) return;
+    if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
     A.src = link;
     await A.play();
-    if(sessionId !== playSessionId) return;
+    if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
     startSpin();
-    say(clean(trackToPlay.name));
-    
+    say(`${clean(trackToPlay.name)}${miniTag}`);
+
     updateMediaSession(clean(trackToPlay.name), disc, coverUrl);
-    if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 
     drawLib();
 
-    if(idx + 1 < tracks.length){
+    if (idx + 1 < tracks.length) {
       prefetchLink(tracks[idx + 1].path_lower);
     }
-  }catch(e){
-    if(sessionId === playSessionId) {
-      say('Error: '+e.message);
+  } catch (e) {
+    if (sessionId === playSessionId) {
+      say('Error: ' + e.message);
     }
   }
 }
 
-function step(d){
-  if(!tracks.length)return;
-  if(shuffle&&tracks.length>1){let n;do{n=Math.floor(Math.random()*tracks.length)}while(n===idx);playIdx(n);return}
-  const n=idx+d;
-  if(n>=0&&n<tracks.length)playIdx(n);else if(d>0){A.pause();stopSpin();A.currentTime=0;say('End of disc')}
+function stopPlayback() {
+  ++playSessionId;
+  A.pause();
+  A.currentTime = 0;
+  stopSpin();
+  $('#seek').value = 0;
+  $('#time').textContent = tracks.length ? '0:00' : '--:--';
+  updateSeekFill();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+  const miniTag = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  say(tracks.length ? `${clean(cur().name)}${miniTag}` : 'No disc');
 }
 
-$('#pp').onclick=async ()=>{
-  if(stack.length === 1 && !tracks.length){
+function step(d) {
+  if (!tracks.length) return;
+
+  if (repeatMode === 'one' && d === 0) {
+    playIdx(idx);
+    return;
+  }
+
+  if (shuffle && tracks.length > 1) {
+    let n;
+    do {
+      n = Math.floor(Math.random() * tracks.length);
+    } while (n === idx);
+    playIdx(n);
+    return;
+  }
+
+  const n = idx + d;
+  if (n >= 0 && n < tracks.length) {
+    playIdx(n);
+  } else if (d > 0) {
+    if (repeatMode === 'all') {
+      playIdx(0);
+    } else {
+      ++playSessionId;
+      A.pause();
+      stopSpin();
+      A.currentTime = 0;
+      $('#seek').value = 0;
+      updateSeekFill();
+      say('End of disc');
+    }
+  } else if (d < 0 && repeatMode === 'all') {
+    playIdx(tracks.length - 1);
+  }
+}
+
+$('#pp').onclick = async () => {
+  if (isAnimating) return;
+
+  if (stack.length === 1 && !tracks.length) {
     say('Choose a CD folder first');
     return;
   }
-  const currentFolder = stack[stack.length-1];
-  if(stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)){
+
+  const currentFolder = stack[stack.length - 1];
+  if (stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)) {
     const files = view.filter(isAudio);
-    if(files.length > 0){
-      await loadAlbumIntoTray(files, currentFolder.name, currentFolder.path, view, 0);
-      playIdx(0);
+    if (files.length > 0) {
+      await loadAlbumIntoTray(files, currentFolder.name, currentFolder.path, view, 0, true);
       return;
     }
   }
-  if(!tracks.length){say('Choose a CD folder first');return}
-  if(!A.paused){
+
+  if (!tracks.length) {
+    say('Choose a CD folder first');
+    return;
+  }
+
+  if (!A.paused) {
     A.pause();
     stopSpin();
+  } else if (A.src && !A.src.startsWith('data:') && A.currentTime > 0 && !A.ended) {
+    A.play().catch(() => playIdx(Math.max(idx, 0)));
   } else {
-    playIdx(Math.max(idx,0));
+    playIdx(Math.max(idx, 0));
   }
 };
-$('#next').onclick=()=>step(1);
-$('#prev').onclick=()=>{if(A.currentTime>3)A.currentTime=0;else step(-1)};
-$('#stop').onclick=()=>{A.pause();stopSpin();A.currentTime=0;updateSeekFill();say(tracks.length?clean(cur().name):'No disc')};
-$('#shuf').onclick=e=>{shuffle=!shuffle;e.currentTarget.setAttribute('aria-pressed',shuffle)};
+
+$('#next').onclick = () => step(1);
+$('#prev').onclick = () => {
+  if (A.currentTime > 3) {
+    A.currentTime = 0;
+    syncMediaPosition();
+  } else {
+    step(-1);
+  }
+};
+$('#stop').onclick = stopPlayback;
+
+$('#shuf').onclick = e => {
+  shuffle = !shuffle;
+  e.currentTarget.setAttribute('aria-pressed', shuffle);
+};
+
+$('#rep').onclick = e => {
+  const order = ['off', 'all', 'one'];
+  repeatMode = order[(order.indexOf(repeatMode) + 1) % order.length];
+  const btn = e.currentTarget;
+  const icon = $('#rep-icon');
+  btn.setAttribute('aria-pressed', repeatMode !== 'off');
+  const label = repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'all' ? 'Repeat: All' : 'Repeat: One';
+  btn.setAttribute('aria-label', label);
+  btn.setAttribute('title', label);
+  icon.innerHTML = repeatMode === 'one' ? REP_IC.one : REP_IC.loop;
+};
 
 $('#lib-toggle').onclick = () => {
   const isOpen = $('#lib').classList.toggle('open');
@@ -1370,64 +1709,90 @@ $('#tv-mode').onclick = () => {
   $('#lib-toggle').setAttribute('aria-expanded', 'false');
 };
 
-$('#eject').onclick=async ()=>{
-  if(!tracks.length && !disc || isAnimating) return;
+$('#eject').onclick = async () => {
+  if ((!tracks.length && !disc) || isAnimating) return;
+  ++playSessionId;
+  ++folderSessionId;
+  pendingTrayRequest = null;
   isAnimating = true;
 
+  A.pause();
+  A.removeAttribute('src');
   stopSpin();
+
   const discEl = $('#disc');
   discEl.classList.add('ejecting');
   await new Promise(r => setTimeout(r, 900));
   discEl.classList.remove('ejecting');
 
-  A.pause();
-  A.removeAttribute('src');
-  tracks=[];
-  idx=-1;
-  disc='';
-  currentAlbumPath='';
-  folderCoverUrl='';
-  coverUrl='';
+  tracks = [];
+  idx = -1;
+  disc = '';
+  currentAlbumPath = '';
+  folderCoverUrl = '';
+  coverUrl = '';
   draw();
-  $('#time').textContent='--:--';
-  $('#seek').value=0;
+  $('#time').textContent = '--:--';
+  $('#seek').value = 0;
   updateSeekFill();
   say('Disc ejected');
   isAnimating = false;
 
-  stack = [{path:'', name:'TK_MusicPlayer'}];
-  openFolder('');
+  stack = [{ path: '', name: 'TK_MusicPlayer' }];
+  openFolder('', false);
 };
 
-$('#seek').oninput=e=>{if(isFinite(A.duration))A.currentTime=e.target.value/1000*A.duration;updateSeekFill()};
+$('#seek').oninput = e => {
+  if (isFinite(A.duration)) {
+    A.currentTime = e.target.value / 1000 * A.duration;
+    syncMediaPosition();
+  }
+  updateSeekFill();
+};
 
-A.onplay=()=>{
+A.onplay = () => {
   startSpin();
-  $('#ppi').innerHTML=IC.pause;
-  $('#pp').setAttribute('aria-label','Pause');
-  if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  $('#ppi').innerHTML = IC.pause;
+  $('#pp').setAttribute('aria-label', 'Pause');
+  bindMediaSessionHandlers();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  syncMediaPosition();
 };
-A.onpause=()=>{
-  stopSpin();
-  $('#ppi').innerHTML=IC.play;
-  $('#pp').setAttribute('aria-label','Play');
-  if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-};
-A.ontimeupdate=()=>{
-  if(A.src.startsWith('data:'))return;
-  $('#time').textContent=fmt(A.currentTime);
-  if(isFinite(A.duration)){$('#seek').value=A.currentTime/A.duration*1000;updateSeekFill()}
-};
-A.onended=()=>step(1);
-A.onerror=()=>{if(!A.src.startsWith('data:'))say('Cannot play this file')};
 
-if('mediaSession' in navigator){
-  const m=navigator.mediaSession;
-  m.setActionHandler('play',()=>A.play());
-  m.setActionHandler('pause',()=>A.pause());
-  m.setActionHandler('nexttrack',()=>step(1));
-  m.setActionHandler('previoustrack',()=>step(-1));
-}
+A.onpause = () => {
+  stopSpin();
+  $('#ppi').innerHTML = IC.play;
+  $('#pp').setAttribute('aria-label', 'Play');
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+  syncMediaPosition();
+};
+
+A.onloadedmetadata = () => {
+  syncMediaPosition();
+};
+
+A.ontimeupdate = () => {
+  if (A.src.startsWith('data:')) return;
+  $('#time').textContent = fmt(A.currentTime);
+  if (isFinite(A.duration)) {
+    $('#seek').value = A.currentTime / A.duration * 1000;
+    updateSeekFill();
+  }
+};
+
+A.onended = () => {
+  if (repeatMode === 'one') {
+    playIdx(idx);
+  } else {
+    step(1);
+  }
+};
+
+A.onerror = () => {
+  if (!A.src.startsWith('data:')) say('Cannot play this file');
+};
+
+bindMediaSessionHandlers();
 
 // Initialization & OAuth Code Exchange Check
 const urlParams = new URLSearchParams(window.location.search);
@@ -1440,7 +1805,7 @@ if (authCode) {
 
   fetch('https://api.dropbox.com/oauth2/token', {
     method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code: authCode,
@@ -1449,10 +1814,10 @@ if (authCode) {
       redirect_uri: redirectUri
     })
   }).then(res => res.json()).then(data => {
-    if(data.access_token) {
+    if (data.access_token) {
       S = { token: data.access_token, refresh_token: data.refresh_token };
       save(S);
-      openFolder('');
+      openFolder('', false);
     } else {
       showLogin('Authentication failed. Please try again.');
     }
@@ -1461,8 +1826,8 @@ if (authCode) {
   });
 } else {
   S = load();
-  if(S && S.token) {
-    openFolder('');
+  if (S && S.token) {
+    openFolder('', false);
   } else {
     showLogin();
   }
