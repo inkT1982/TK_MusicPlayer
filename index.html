@@ -100,6 +100,17 @@
     color: var(--text-main);
   }
 
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .top-actions .mini {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+
   /* Optical Disc Bay Window */
   .well {
     position: relative;
@@ -500,14 +511,6 @@
     background: #242428;
   }
 
-  .led {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #424248;
-    transition: all 0.2s ease;
-  }
-
   .mini[aria-pressed=true],
   .mini[aria-expanded=true] {
     color: var(--text-main);
@@ -515,27 +518,8 @@
     background: rgba(255, 90, 31, 0.1);
   }
 
-  .mini[aria-pressed=true] .led {
-    background: var(--braun-orange);
-    box-shadow: 0 0 8px var(--braun-orange);
-  }
-
   .mini[aria-pressed=true] svg {
     color: var(--braun-orange);
-  }
-
-  /* Copyright Footer inside Chassis */
-  .copyright-footer {
-    text-align: center;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    margin-top: 14px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-    opacity: 0.7;
-    text-transform: uppercase;
   }
 
   /* Disc Library Drawer (Portrait) */
@@ -551,6 +535,20 @@
 
   .lib.open {
     display: block;
+  }
+
+  /* Copyright Footer inside Chassis (below Library drawer) */
+  .copyright-footer {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    opacity: 0.7;
+    text-transform: uppercase;
   }
 
   .lib h2 {
@@ -672,6 +670,7 @@
     margin: 12px 0 0;
   }
 
+  /* TV / Ambient Mode */
   body.tv-mode {
     background: #000000 !important;
     justify-content: center;
@@ -685,7 +684,7 @@
   body.tv-mode input[type=range],
   body.tv-mode .top small,
   body.tv-mode .brand-badge span,
-  body.tv-mode .tools .mini:not(#tv-mode),
+  body.tv-mode .tools,
   body.tv-mode #lib-toggle,
   body.tv-mode .copyright-footer {
     display: none !important;
@@ -698,17 +697,20 @@
     max-width: 520px !important;
     width: 100% !important;
     padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
 
   body.tv-mode .top {
     justify-content: center;
+    gap: 14px;
+    margin-top: 0 !important;
     margin-bottom: 30px;
   }
 
-  body.tv-mode .tools {
-    border-top: none !important;
-    justify-content: center !important;
-    padding-top: 10px !important;
+  body.tv-mode .well {
+    margin-bottom: 0 !important;
   }
 
   /* LANDSCAPE LAYOUT */
@@ -809,7 +811,10 @@
       <div class="brand-dot" id="power-led"></div>
       <span>TK-100</span>
     </div>
-    <button class="mini" id="lib-toggle" aria-expanded="false" style="padding: 5px 12px; font-size: 11px;">Library</button>
+    <div class="top-actions">
+      <button class="mini" id="tv-mode" aria-pressed="false">TV Mode</button>
+      <button class="mini" id="lib-toggle" aria-expanded="false">Library</button>
+    </div>
   </div>
   <div class="well">
     <div class="disc empty" id="disc">
@@ -834,20 +839,17 @@
   </div>
   <div class="tools">
     <button class="mini icon-only" id="shuf" aria-pressed="false" aria-label="Shuffle" title="Shuffle">
-      <span class="led"></span>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
     </button>
     <button class="mini icon-only" id="rep" aria-pressed="false" aria-label="Repeat: Off" title="Repeat: Off">
-      <span class="led"></span>
       <svg viewBox="0 0 24 24" width="14" height="14" id="rep-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
     </button>
-    <button class="mini" id="tv-mode" aria-pressed="false"><span class="led"></span>TV Mode</button>
     <button class="mini icon-only" id="eject" aria-label="Eject" title="Eject"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg></button>
   </div>
 
-  <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
-
   <section class="lib" id="lib"></section>
+
+  <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
 </main>
 
 <audio id="a" preload="auto" playsinline></audio>
@@ -1121,7 +1123,6 @@ function bindMediaSessionHandlers() {
   if (!('mediaSession' in navigator)) return;
   const m = navigator.mediaSession;
 
-  // Explicitly clear seekbackward/seekforward so iOS shows Previous/Next track buttons instead of ±10s skip buttons
   try { m.setActionHandler('seekbackward', null); } catch (e) {}
   try { m.setActionHandler('seekforward', null); } catch (e) {}
 
@@ -1230,7 +1231,7 @@ async function openFolder(path, autoLoadAlbum = false) {
   say('Reading…');
   try {
     const entries = await listFolderAll(path);
-    if (fSession !== folderSessionId) return; // Ignore stale folder responses
+    if (fSession !== folderSessionId) return;
 
     view = entries;
     const audioFiles = view.filter(isAudio);
@@ -1263,13 +1264,11 @@ async function openFolder(path, autoLoadAlbum = false) {
 }
 
 async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
-  // If an animation is currently running, record the latest user selection so it executes immediately after
   if (isAnimating) {
     pendingTrayRequest = { audioFiles, albumName, albumPath, folderView, startIdx, autoPlayAfterLoad };
     return;
   }
 
-  // Stop-on-Disc-Change invariant: immediately halt any playing audio & reset timer/scrubber
   const loadSession = ++playSessionId;
   A.pause();
   A.removeAttribute('src');
@@ -1330,7 +1329,6 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
   discEl.classList.remove('inserting');
   isAnimating = false;
 
-  // If user clicked another album or track while disc was animating, execute that immediately
   if (pendingTrayRequest) {
     const nextReq = pendingTrayRequest;
     pendingTrayRequest = null;
