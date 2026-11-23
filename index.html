@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="AppIcon.png?v=2">
 <title>TK-100 Compact Disc Player</title>
-<script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
-    --bg: #0b0b0c;
-    --panel: #161619;
-    --panel-2: #1f1f24;
-    --ink: #f3f3f5;
-    --muted: #9898a2;
-    --accent: #ff5a1f;
-    --accent-soft: rgba(255, 90, 31, 0.16);
-    --line: rgba(255, 255, 255, 0.08);
-    --lcd-bg: #090a08;
-    --lcd-ink: #ffb347;
-    --radius: 22px;
-    --space: clamp(14px, 3vw, 24px);
-    --tap: 46px;
+    --chassis-bg: #18181a;
+    --chassis-top: #232326;
+    --chassis-border: #323236;
+    --well-bg: #0c0c0e;
+    --oled-bg: #070809;
+    --oled-amber: #ff9d3b;
+    --oled-dim: #73471b;
+    --braun-orange: #ff5a1f;
+    --braun-orange-dark: #c93b08;
+    --btn-surface: #26262a;
+    --btn-highlight: #36363b;
+    --text-main: #f2f2f5;
+    --text-muted: #8e8e96;
+    --radius-deck: 24px;
+    --radius-btn: 12px;
+    --space: 20px;
   }
 
   * {
@@ -29,69 +33,71 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  html, body {
-    margin: 0;
-    padding: 0;
-    min-height: 100%;
-    background: radial-gradient(circle at top, #18181d 0%, var(--bg) 62%);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
+  html {
+    background: #0d0d0f;
+    height: 100%;
   }
 
   body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #242429 0%, #0d0d0f 75%);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: max(var(--space), env(safe-area-inset-top)) max(var(--space), env(safe-area-inset-right)) max(var(--space), env(safe-area-inset-bottom)) max(var(--space), env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding:
-      max(14px, env(safe-area-inset-top))
-      max(14px, env(safe-area-inset-right))
-      max(20px, env(safe-area-inset-bottom))
-      max(14px, env(safe-area-inset-left));
-    gap: 14px;
+    justify-content: center;
   }
 
+  /* Main Deck Enclosure */
   .deck {
+    position: relative;
     width: 100%;
     max-width: 440px;
-    background: linear-gradient(180deg, var(--panel) 0%, #111114 100%);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-deck);
     padding: var(--space);
+    background: linear-gradient(175deg, var(--chassis-top) 0%, var(--chassis-bg) 45%, #121214 100%);
+    border: 1px solid var(--chassis-border);
     box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.65),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space);
-    position: relative;
+      0 28px 60px rgba(0, 0, 0, 0.75),
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.8);
+    transition: all 0.3s ease;
   }
 
+  /* Industrial Header */
   .top {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    align-items: center;
+    margin-bottom: var(--space);
+    padding: 0 2px;
   }
 
-  .brand {
+  .brand-badge {
     display: flex;
     align-items: center;
-    gap: 9px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink);
+    gap: 8px;
   }
 
-  .led {
+  .brand-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-    flex: 0 0 auto;
+    background: var(--braun-orange);
+    box-shadow: 0 0 8px rgba(255, 90, 31, 0.7);
+  }
+
+  .top span {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: var(--text-main);
   }
 
   .top-actions {
@@ -100,84 +106,29 @@
     gap: 8px;
   }
 
-  .pill-btn {
-    min-height: 36px;
-    padding: 0 13px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--panel-2);
-    color: var(--ink);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  .top-actions .mini {
+    padding: 5px 12px;
+    font-size: 11px;
   }
 
-  .pill-btn:active {
-    transform: scale(0.97);
-  }
-
-  .pill-btn.active {
-    background: var(--accent-soft);
-    border-color: rgba(255, 90, 31, 0.55);
-    color: #ff9870;
-  }
-
-  /* Optical Disc Bay Window (Portrait / Vertical) */
+  /* Optical Disc Bay Window (Portrait / Vertical untouched) */
   .well {
     position: relative;
-    background: radial-gradient(circle at center, #1b1b20 0%, #0d0d10 62%, #060608 100%);
+    background: linear-gradient(145deg, #141417, #070709);
     border-radius: 50%;
     padding: 12px;
     width: 100%;
     max-width: 390px;
-    margin: 0 auto;
+    margin: 0 auto var(--space);
     overflow: hidden;
     box-shadow:
       inset 0 14px 32px rgba(0, 0, 0, 0.98),
       inset 0 0 0 2px #2c2c32,
       0 1px 0 rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1;
-  }
-
-  /* Tray & Spindle visible inside empty optical well */
-  .well::before {
-    content: "";
-    position: absolute;
-    inset: 14px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.025) 0%, transparent 72%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .spindle {
-    position: absolute;
-    z-index: 1;
-    width: 22%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, #0e0e11 32%, #4a4f58 36%, #23262b 62%, #121215 100%);
-    box-shadow:
-      inset 0 2px 6px rgba(0, 0, 0, 0.9),
-      0 0 0 1px rgba(255, 255, 255, 0.08);
-    pointer-events: none;
   }
 
   .disc {
     position: relative;
-    z-index: 2;
-    width: 100%;
-    max-width: 318px;
     aspect-ratio: 1;
     border-radius: 50%;
     background:
@@ -195,1365 +146,1671 @@
         #c8ced6 360deg
       );
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
-    transition: width 0.35s ease, max-width 0.35s ease, filter 0.35s ease, opacity 0.35s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: width 0.35s ease, max-width 0.35s ease, filter 0.35s ease, opacity 0.35s ease;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
+  /* 8cm Mini CD Single (<= 4 tracks) */
   .disc.mini-cd {
     width: 170px;
     max-width: 170px;
+    margin: auto;
   }
 
-  .disc.empty {
-    opacity: 0;
-    transform: translateX(115%);
-    pointer-events: none;
-  }
-
-  .disc.inserting {
-    animation: discInsert 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  }
-
-  .disc.ejecting {
-    animation: discEject 0.9s cubic-bezier(0.4, 0, 0.8, 0.6) forwards;
-  }
-
-  @keyframes discInsert {
-    0% {
-      opacity: 0;
-      transform: translateX(115%);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes discEject {
-    0% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    100% {
-      opacity: 0;
-      transform: translateX(115%);
-    }
-  }
-
-  #disc-rotor {
+  .well-shadow {
     position: absolute;
     inset: 0;
     border-radius: 50%;
+    background: radial-gradient(circle at center, transparent 68%, rgba(0, 0, 0, 0.85) 92%, #000000 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .disc-rotor {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: translateZ(0);
     will-change: transform;
   }
 
-  #disc-art {
-    position: absolute;
-    inset: 14%;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+  @keyframes insertDisc {
+    0% { transform: translate(140%, -10%) scale(0.85) rotate(20deg); opacity: 0; }
+    65% { transform: translate(-4%, 2%) scale(1.03) rotate(-2deg); opacity: 1; }
+    85% { transform: translate(2%, -1%) scale(0.98) rotate(1deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
   }
 
-  .disc.has-art #disc-art {
-    opacity: 0.72;
+  @keyframes ejectDisc {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+    35% { transform: translate(6%, -2%) scale(1.02) rotate(2deg); }
+    100% { transform: translate(-140%, 10%) scale(0.85) rotate(-20deg); opacity: 0; }
   }
 
-  #lab {
+  .disc.inserting {
+    animation: insertDisc 1.1s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
+  }
+
+  .disc.ejecting {
+    animation: ejectDisc 0.9s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+  }
+
+  .disc-rotor .cover-art {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20%;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.82);
-    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: none;
+  }
+  .disc.has-art .cover-art {
+    display: block;
+  }
+  .disc.has-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 15deg,
+      transparent 0%,
+      rgba(125, 211, 252, 0.2) 12%,
+      rgba(244, 114, 182, 0.15) 18%,
+      transparent 30%,
+      transparent 60%,
+      rgba(56, 189, 248, 0.2) 72%,
+      transparent 82%
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .disc:not(.has-art):not(.empty)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 15deg,
+      transparent 0%,
+      rgba(125, 211, 252, 0.35) 12%,
+      rgba(244, 114, 182, 0.3) 18%,
+      rgba(253, 224, 71, 0.3) 24%,
+      transparent 34%,
+      transparent 52%,
+      rgba(167, 139, 250, 0.32) 64%,
+      rgba(56, 189, 248, 0.35) 72%,
+      transparent 82%
+    );
+    mix-blend-mode: screen;
     pointer-events: none;
   }
 
-  .hub {
-    position: relative;
-    z-index: 2;
-    width: 24%;
-    aspect-ratio: 1;
+  .disc.empty {
+    background: radial-gradient(circle at center, #1b1b20 0%, #0d0d10 65%, #050506 100%);
+    box-shadow: inset 0 12px 28px rgba(0, 0, 0, 0.98), 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .lab {
+    position: absolute;
+    z-index: 3;
+    inset: 32%;
     border-radius: 50%;
-    background: radial-gradient(circle, #18181c 48%, #8e96a0 51%, #3b4048 72%, #141418 100%);
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.65), inset 0 0 6px rgba(255, 255, 255, 0.25);
+    background: radial-gradient(circle at 30% 30%, #27272b, #141416);
+    color: var(--text-main);
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 12%;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    overflow: hidden;
+    word-break: break-word;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.14),
+      inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+  .disc.has-art .lab {
+    background: rgba(20, 20, 22, 0.4);
+    backdrop-filter: blur(2px);
+  }
+  .disc.empty .lab {
+    background: radial-gradient(circle at 30% 30%, #1a1a1d, #0d0d0f);
+    color: var(--text-muted);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06), inset 0 2px 4px rgba(0, 0, 0, 0.9);
   }
 
-  /* OLED Screen */
+  .hub {
+    position: absolute;
+    z-index: 4;
+    inset: 43%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #3a3a40, #0d0d0f);
+    box-shadow:
+      0 0 0 3px #1c1c1f,
+      0 0 0 4px rgba(255, 255, 255, 0.15),
+      0 3px 6px rgba(0, 0, 0, 0.9);
+  }
+
+  .hub::after {
+    content: "";
+    position: absolute;
+    inset: 34%;
+    border-radius: 50%;
+    background: #050506;
+  }
+
+  /* OLED Telemetry Screen */
   .lcd {
-    background: var(--lcd-bg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--oled-bg);
+    color: var(--oled-amber);
     border-radius: 14px;
-    padding: 12px 14px;
+    padding: 12px var(--space);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    border: 1px solid #29292e;
+    box-shadow:
+      inset 0 4px 14px rgba(0, 0, 0, 0.95),
+      0 1px 0 rgba(255, 255, 255, 0.06);
+    margin-bottom: var(--space);
+  }
+
+  .row1 {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    min-height: 64px;
-    box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.9);
+    align-items: baseline;
+    margin-bottom: 4px;
   }
 
-  .lcd-left {
-    min-width: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  #trk {
-    font-family: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
-    font-size: 12px;
-    color: var(--lcd-ink);
-    letter-spacing: 0.08em;
-    opacity: 0.85;
-  }
-
-  #msg {
+  .row1 span:first-child {
     font-size: 13px;
-    font-weight: 500;
-    color: var(--lcd-ink);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--oled-dim);
+  }
+
+  .row1 span:last-child {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-shadow: 0 0 14px rgba(255, 157, 59, 0.45);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row2 {
+    font-size: 12px;
+    color: #e5b887;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-height: 1.4em;
+    max-height: 1.4em;
+    letter-spacing: 0.02em;
   }
 
-  #time {
-    font-family: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--lcd-ink);
-    letter-spacing: 0.06em;
-    align-self: center;
-    line-height: 1;
-    flex: 0 0 auto;
-  }
-
-  /* Scrubber */
-  .seek-wrap {
-    display: flex;
-    align-items: center;
-    padding: 2px 0;
-  }
-
-  input[type="range"]#seek {
+  /* Precision Scrubber */
+  input[type=range] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
-    height: 28px;
-    background: transparent;
-    cursor: pointer;
-    margin: 0;
-  }
-
-  input[type="range"]#seek::-webkit-slider-runnable-track {
-    height: 5px;
+    height: 6px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
+    background: #0c0c0e;
+    border: 1px solid #2b2b30;
+    margin: 0 0 var(--space);
+    cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
   }
 
-  input[type="range"]#seek::-webkit-slider-thumb {
+  input[type=range]:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: var(--accent);
-    margin-top: -5.5px;
-    box-shadow: 0 0 10px rgba(255, 90, 31, 0.65);
+    background: radial-gradient(circle at 35% 35%, #ffffff, #cbd5e1);
+    border: 2px solid #18181a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.25);
+    transition: transform 0.12s ease;
   }
 
-  input[type="range"]#seek::-moz-range-track {
-    height: 5px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
+  input[type=range]:not(:disabled)::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
   }
 
-  input[type="range"]#seek::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border: none;
+  input[type=range]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px rgba(255, 90, 31, 0.65);
+    background: radial-gradient(circle at 35% 35%, #ffffff, #cbd5e1);
+    border: 2px solid #18181a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
   }
 
-  /* Transport Controls */
-  .transport {
+  /* Tactile Transport Deck */
+  .btns {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1.35fr 1fr 1fr;
     gap: 10px;
+    margin-bottom: var(--space);
   }
 
-  .t-btn {
-    height: var(--tap);
-    border-radius: 14px;
-    border: 1px solid var(--line);
-    background: var(--panel-2);
-    color: var(--ink);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .btn {
+    height: 48px;
+    border-radius: var(--radius-btn);
+    border: 1px solid #38383e;
+    background: linear-gradient(180deg, var(--btn-highlight) 0%, var(--btn-surface) 100%);
+    box-shadow:
+      0 4px 0 #0d0d0f,
+      0 8px 14px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    display: grid;
+    place-items: center;
+    color: var(--text-main);
     cursor: pointer;
-    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+    padding: 0;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
   }
 
-  .t-btn:active {
-    transform: scale(0.96);
+  .btn:hover {
+    background: linear-gradient(180deg, #404046 0%, #2c2c30 100%);
   }
 
-  .t-btn.primary {
-    background: var(--accent);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(255, 90, 31, 0.35);
+  .btn:active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 #0d0d0f,
+      0 3px 6px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
-  /* Shuffle, Repeat, Eject — icon-only, 200% extended width (3x base), unchanged 30px height, horizontally centered */
+  .btn.big {
+    background: linear-gradient(180deg, #ff703d 0%, var(--braun-orange) 100%);
+    border-color: #ff8c61;
+    color: #ffffff;
+    box-shadow:
+      0 4px 0 #8a2603,
+      0 8px 16px rgba(255, 90, 31, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .btn.big:hover {
+    background: linear-gradient(180deg, #ff7d4f 0%, #ff6229 100%);
+  }
+
+  .btn.big:active {
+    box-shadow:
+      0 1px 0 #8a2603,
+      0 3px 8px rgba(255, 90, 31, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  .btn:focus-visible,
+  .row:focus-visible,
+  .mini:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--braun-orange);
+    outline-offset: 2px;
+  }
+
+  /* Utility Switches: icon-only, no LED dots, 200% wider (3x base ~33px -> ~99px), same height (~30px) */
   .tools {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: nowrap;
+    gap: 8px;
+    padding-top: var(--space);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .tools .mini {
-    width: 132px;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: 120px;
     height: 30px;
-    padding: 0;
-    border-radius: 9px;
-    border: 1px solid var(--line);
-    background: var(--panel-2);
-    color: var(--muted);
+    padding: 7px 0;
+  }
+
+  .mini {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border: 1px solid #323236;
+    background: #1d1d20;
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    color: var(--text-muted);
     display: inline-flex;
+    gap: 6px;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    flex: 0 0 auto;
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    white-space: nowrap;
+    transition: all 0.15s ease;
   }
 
-  .tools .mini:active {
-    transform: scale(0.97);
+  .mini:hover {
+    color: var(--text-main);
+    border-color: #46464c;
+    background: #242428;
   }
 
-  .tools .mini.on {
-    background: var(--accent-soft);
-    border-color: rgba(255, 90, 31, 0.55);
-    color: var(--accent);
+  .mini[aria-pressed=true],
+  .mini[aria-expanded=true] {
+    color: var(--text-main);
+    border-color: rgba(255, 90, 31, 0.5);
+    background: rgba(255, 90, 31, 0.1);
   }
 
-  /* Library Drawer */
-  section.lib {
+  .mini[aria-pressed=true] svg {
+    color: var(--braun-orange);
+  }
+
+  /* Disc Library Drawer (Portrait) */
+  .lib {
+    width: 100%;
+    margin-top: var(--space);
+    background: #101012;
+    border: 1px solid #2a2a2e;
+    border-radius: 16px;
+    padding: var(--space);
     display: none;
-    flex-direction: column;
-    gap: 10px;
-    border-top: 1px solid var(--line);
-    padding-top: 14px;
   }
 
-  section.lib.open {
-    display: flex;
+  .lib.open {
+    display: block;
   }
 
-  .lib-bar {
+  /* Copyright Footer inside Chassis (below Library drawer) */
+  .copyright-footer {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+
+  .lib h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 12px;
+    font-weight: 700;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-  }
-
-  .crumbs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    min-width: 0;
-    flex: 1;
-  }
-
-  .crumb {
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--muted);
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    max-width: 170px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .crumb.current {
-    color: var(--ink);
-    border-color: rgba(255, 255, 255, 0.22);
-  }
-
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 290px;
-    overflow-y: auto;
-    padding-right: 2px;
   }
 
   .row {
-    width: 100%;
-    min-height: var(--tap);
     padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--ink);
-    font-size: 13px;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    border-radius: 10px;
+    margin-bottom: 4px;
     cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    transition: background 0.15s ease, color 0.15s ease;
   }
 
   .row:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #1f1f23;
   }
 
-  .row-title {
-    min-width: 0;
-    flex: 1;
-    white-space: nowrap;
+  .row.cur {
+    background: rgba(255, 90, 31, 0.14);
+    border: 1px solid rgba(255, 90, 31, 0.35);
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .row.cur i {
+    color: var(--braun-orange);
+  }
+
+  .row i {
+    font-style: normal;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 1.5em;
+    flex: none;
+    text-align: center;
+  }
+
+  .row img.thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex: none;
+    background: #202024;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+
+  .row span {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .row-meta {
-    font-size: 11px;
-    color: var(--muted);
-    flex: 0 0 auto;
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 10px 0 5px;
   }
 
-  .row.playing {
-    border-color: rgba(255, 90, 31, 0.55);
-    background: var(--accent-soft);
-    color: #ffa37e;
-  }
-
-  .empty-state {
-    padding: 18px 12px;
-    text-align: center;
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  /* Copyright Footer below Library Drawer */
-  .copyright-footer {
+  input:not([type=range]), select {
     width: 100%;
-    max-width: 440px;
-    text-align: center;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    padding: 2px 8px 6px;
+    padding: 11px 12px;
+    border: 1px solid #323236;
+    border-radius: 10px;
+    font: inherit;
+    background: #0d0d0f;
+    color: var(--text-main);
+    transition: border-color 0.15s ease;
+  }
+
+  input:not([type=range]):focus, select:focus {
+    border-color: var(--braun-orange);
+  }
+
+  .lib button.go {
+    margin-top: var(--space);
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ff703d 0%, var(--braun-orange) 100%);
+    color: #ffffff;
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 90, 31, 0.3);
+    transition: filter 0.15s ease, transform 0.08s ease;
+  }
+
+  .lib button.go:hover {
+    filter: brightness(1.08);
+  }
+
+  .lib button.go:active {
+    transform: translateY(1px);
+  }
+
+  .note {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 12px 0 0;
   }
 
   /* TV / Ambient Mode */
   body.tv-mode {
-    background: #000000;
+    background: #000000 !important;
     justify-content: center;
-  }
-
-  body.tv-mode .deck {
-    background: #000000;
-    border-color: transparent;
-    box-shadow: none;
-    max-width: 640px;
-    width: 100%;
     align-items: center;
-    justify-content: center;
+    overflow: hidden;
   }
 
-  body.tv-mode .top .brand span {
-    display: none;
-  }
-
-  body.tv-mode .top-actions > :not(#tv-mode),
+  body.tv-mode .lib,
+  body.tv-mode .btns,
   body.tv-mode .lcd,
-  body.tv-mode .seek-wrap,
-  body.tv-mode .transport,
+  body.tv-mode input[type=range],
+  body.tv-mode .top small,
+  body.tv-mode .brand-badge span,
   body.tv-mode .tools,
-  body.tv-mode section.lib,
+  body.tv-mode #lib-toggle,
   body.tv-mode .copyright-footer {
     display: none !important;
   }
 
-  body.tv-mode .well {
-    max-width: min(74vw, 74vh, 460px);
-    background: #040405;
-    box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.95);
+  body.tv-mode .deck {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 520px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
 
-  /* Landscape Layout (Mobile Landscape & Desktop/Web Landscape) */
-  @media (orientation: landscape) and (max-height: 760px) {
+  body.tv-mode .top {
+    justify-content: center;
+    gap: 14px;
+    margin-top: 0 !important;
+    margin-bottom: 30px;
+  }
+
+  body.tv-mode .well {
+    margin-bottom: 0 !important;
+  }
+
+  /* LANDSCAPE LAYOUT: Proportional CD via clamp(190px, 62vh, 342px) */
+  @media (orientation: landscape) and (max-height: 700px) {
+    body {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-y: auto;
+      padding: 24px;
+    }
     .deck {
-      --land-cd: clamp(230px, 72vh, 342px);
-      max-width: min(820px, 95vw);
+      --land-cd: clamp(190px, 62vh, 342px);
+      max-width: min(790px, 94vw);
       width: 100%;
+      height: auto;
+      max-height: 92vh;
       display: grid;
       grid-template-columns: var(--land-cd) minmax(0, 1fr);
-      grid-template-rows: auto auto auto auto auto;
-      gap: clamp(10px, 2.2vh, 18px) clamp(16px, 3vw, 24px);
+      gap: clamp(14px, 3vw, 24px);
+      align-content: center;
       align-items: center;
-      padding: clamp(14px, 2.6vh, 22px);
+      padding: clamp(14px, 3vw, 24px);
+      position: relative;
+      overflow: visible;
     }
-
-    .well {
+    .deck .well {
       grid-column: 1;
-      grid-row: 1 / span 5;
+      grid-row: 1 / span 6;
       width: var(--land-cd);
       max-width: var(--land-cd);
+      aspect-ratio: 1;
       margin: 0;
     }
-
-    .top {
+    .deck .top {
       grid-column: 2;
       grid-row: 1;
+      margin-top: 10px;
+      margin-bottom: 0;
+      height: 32px;
     }
-
-    .lcd {
+    .deck .lcd {
       grid-column: 2;
       grid-row: 2;
+      margin: 0;
     }
-
-    .seek-wrap {
+    .deck input[type=range] {
       grid-column: 2;
       grid-row: 3;
+      margin: 0;
     }
-
-    .transport {
+    .deck .btns {
       grid-column: 2;
       grid-row: 4;
+      margin: 0;
     }
-
-    .tools {
+    .deck .btns .btn {
+      height: 45px;
+    }
+    .deck .tools {
       grid-column: 2;
       grid-row: 5;
+      border-top: none;
+      padding-top: 0;
+      margin: 0;
     }
-
-    section.lib {
-      grid-column: 1 / -1;
+    .deck .copyright-footer {
+      grid-column: 2;
       grid-row: 6;
+      margin-top: 4px;
+      padding-top: 6px;
+    }
+    .lib {
+      position: absolute;
+      top: 74px;
+      right: 24px;
+      width: 350px;
+      max-height: 285px;
+      background: #141416;
+      border: 1px solid #2a2a2e;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      display: none;
+      overflow-y: auto;
+      margin: 0;
+      padding: 16px;
+    }
+    .lib.open {
+      display: block;
     }
   }
 </style>
 </head>
 <body>
-  <main class="deck" id="deck">
-    <header class="top">
-      <div class="brand">
-        <span class="led" aria-hidden="true"></span>
-        <span>TK-100</span>
-      </div>
-      <div class="top-actions">
-        <button class="pill-btn" id="tv-mode" type="button" title="TV Mode">TV Mode</button>
-        <button class="pill-btn" id="lib-toggle" type="button">Library</button>
-      </div>
-    </header>
-
-    <div class="well">
-      <div class="spindle" aria-hidden="true"></div>
-      <div class="disc empty" id="disc">
-        <div id="disc-rotor">
-          <div id="disc-art"></div>
-          <div id="lab"></div>
-        </div>
+<main class="deck">
+  <div class="top">
+    <div class="brand-badge">
+      <div class="brand-dot" id="power-led"></div>
+      <span>TK-100</span>
+    </div>
+    <div class="top-actions">
+      <button class="mini" id="tv-mode" aria-pressed="false">TV Mode</button>
+      <button class="mini" id="lib-toggle" aria-expanded="false">Library</button>
+    </div>
+  </div>
+  <div class="well">
+    <div class="disc empty" id="disc">
+      <div class="disc-rotor" id="disc-rotor">
+        <img class="cover-art" id="disc-art" alt="Album Cover">
+        <div class="lab" id="lab"></div>
         <div class="hub"></div>
       </div>
+      <div class="well-shadow"></div>
     </div>
+  </div>
+  <div class="lcd">
+    <div class="row1"><span id="trk">T--/--</span><span id="time">--:--</span></div>
+    <div class="row2" id="msg">Connect Dropbox to read your library</div>
+  </div>
+  <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek" disabled>
+  <div class="btns">
+    <button class="btn" id="prev" aria-label="Previous track"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button class="btn big" id="pp" aria-label="Play"><svg viewBox="0 0 24 24" id="ppi"><path d="M7 4v16l13-8z"/></svg></button>
+    <button class="btn" id="next" aria-label="Next track"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    <button class="btn" id="stop" aria-label="Stop"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+  </div>
+  <div class="tools">
+    <button class="mini" id="shuf" aria-pressed="false" aria-label="Shuffle" title="Shuffle">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+    </button>
+    <button class="mini" id="rep" aria-pressed="false" aria-label="Repeat: Off" title="Repeat: Off">
+      <svg viewBox="0 0 24 24" width="14" height="14" id="rep-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </button>
+    <button class="mini" id="eject" aria-label="Eject" title="Eject">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 17h14v2H5zM12 5l7 9H5z"/></svg>
+    </button>
+  </div>
 
-    <div class="lcd" role="status" aria-live="polite">
-      <div class="lcd-left">
-        <div id="trk">T--/--</div>
-        <div id="msg">Choose a CD folder</div>
-      </div>
-      <div id="time">--:--</div>
-    </div>
+  <section class="lib" id="lib"></section>
 
-    <div class="seek-wrap">
-      <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Seek position" />
-    </div>
+  <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
+</main>
 
-    <div class="transport">
-      <button class="t-btn" id="prev" type="button" aria-label="Previous track">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
-        </svg>
-      </button>
-      <button class="t-btn primary" id="pp" type="button" aria-label="Play or pause">
-        <svg id="ppi" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-      </button>
-      <button class="t-btn" id="next" type="button" aria-label="Next track">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
-        </svg>
-      </button>
-      <button class="t-btn" id="stop" type="button" aria-label="Stop playback">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 6h12v12H6z" />
-        </svg>
-      </button>
-    </div>
-
-    <div class="tools">
-      <button class="mini" id="shuf" type="button" aria-label="Shuffle" title="Shuffle">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="16 3 21 3 21 8" />
-          <line x1="4" y1="20" x2="21" y2="3" />
-          <polyline points="21 16 21 21 16 21" />
-          <line x1="15" y1="15" x2="21" y2="21" />
-          <line x1="4" y1="4" x2="9" y2="9" />
-        </svg>
-      </button>
-      <button class="mini" id="rep" type="button" aria-label="Repeat" title="Repeat">
-        <span id="rep-icon" style="display:inline-flex;align-items:center;gap:2px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="17 1 21 5 17 9" />
-            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-            <polyline points="7 23 3 19 7 15" />
-            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-          </svg>
-        </span>
-      </button>
-      <button class="mini" id="eject" type="button" aria-label="Eject disc" title="Eject">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 5L5 14h14L12 5zm-7 11h14v2H5v-2z" />
-        </svg>
-      </button>
-    </div>
-
-    <section class="lib" id="lib">
-      <div class="lib-bar">
-        <div class="crumbs" id="crumbs"></div>
-        <button class="crumb" id="auth-btn" type="button">Connect</button>
-      </div>
-      <div class="list" id="list"></div>
-    </section>
-  </main>
-
-  <footer class="copyright-footer">
-    © TK-100 DIGITAL AUDIO. ALL RIGHTS RESERVED.
-  </footer>
-
-  <audio id="audio" preload="metadata"></audio>
+<audio id="a" preload="auto" playsinline></audio>
 
 <script>
-(() => {
-  // Replace with your Dropbox App Key (PKCE)
-  const CLIENT_ID = "YOUR_DROPBOX_APP_KEY";
-  const REDIRECT_URI = window.location.origin + window.location.pathname;
-  const AUTH_STORAGE_KEY = "tk_dbx_auth";
-  const VERIFIER_KEY = "tk_dbx_pkce_verifier";
-  const AUDIO_EXTS = [".mp3", ".flac", ".m4a", ".aac", ".wav", ".ogg"];
-  const COVER_NAMES = ["cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.png", "front.jpg", "front.png"];
+const CLIENT_ID = 'dtcnff0rr7py9qc';
 
-  const audio = document.getElementById("audio");
-  const discEl = document.getElementById("disc");
-  const rotorEl = document.getElementById("disc-rotor");
-  const artEl = document.getElementById("disc-art");
-  const labEl = document.getElementById("lab");
-  const trkEl = document.getElementById("trk");
-  const msgEl = document.getElementById("msg");
-  const timeEl = document.getElementById("time");
-  const seekEl = document.getElementById("seek");
-  const ppBtn = document.getElementById("pp");
-  const ppiEl = document.getElementById("ppi");
-  const prevBtn = document.getElementById("prev");
-  const nextBtn = document.getElementById("next");
-  const stopBtn = document.getElementById("stop");
-  const shufBtn = document.getElementById("shuf");
-  const repBtn = document.getElementById("rep");
-  const repIconEl = document.getElementById("rep-icon");
-  const ejectBtn = document.getElementById("eject");
-  const tvBtn = document.getElementById("tv-mode");
-  const libToggle = document.getElementById("lib-toggle");
-  const libEl = document.getElementById("lib");
-  const crumbsEl = document.getElementById("crumbs");
-  const listEl = document.getElementById("list");
-  const authBtn = document.getElementById("auth-btn");
+const $ = s => document.querySelector(s);
+const A = $('#a');
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+const IC = {
+  play: '<path d="M7 4v16l13-8z"/>',
+  pause: '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'
+};
+const REP_IC = {
+  loop: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  one: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="12" y="15.5" text-anchor="middle" font-size="8.5" font-weight="700" font-family="ui-monospace, monospace" fill="currentColor" stroke="none">1</text>'
+};
 
-  let S = loadAuth();
-  let stack = [{ path: "", name: "TK_MusicPlayer" }];
-  let currentEntries = [];
-  let tracks = [];
-  let disc = "";
-  let currentAlbumPath = "";
-  let idx = -1;
-  let shuffle = false;
-  let repeatMode = "off"; // 'off' | 'all' | 'one'
-  let isSeeking = false;
+let S = null;
+let stack = [{ path: '', name: 'TK_MusicPlayer' }];
+let view = [];
+let tracks = [];
+let disc = '';
+let currentAlbumPath = '';
+let idx = -1;
+let shuffle = false;
+let repeatMode = 'off'; // 'off' | 'all' | 'one'
+let unlocked = false;
+let folderCoverUrl = '';
+let coverUrl = '';
+let isAnimating = false;
+let playSessionId = 0;
+let folderSessionId = 0;
+let pendingTrayRequest = null;
 
-  // Disc spin state
-  let spinAngle = 0;
-  let lastFrameTime = null;
-  let rafId = null;
+// PKCE Helper Functions
+function generateCodeVerifier() {
+  const array = new Uint8Array(32);
+  window.crypto.getRandomValues(array);
+  return btoa(String.fromCharCode.apply(null, array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
-  // Async & tray guards
-  let playSessionId = 0;
-  let folderSessionId = 0;
-  let pendingTrayRequest = null;
-  let isAnimatingDisc = false;
-  const linkCache = new Map();
-  const coverCache = new Map();
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
-  function loadAuth() {
-    try {
-      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+async function startLogin() {
+  try {
+    const verifier = generateCodeVerifier();
+    localStorage.setItem('tk_verifier', verifier);
+    const challenge = await generateCodeChallenge(verifier);
+    const redirectUri = window.location.origin + window.location.pathname;
+    const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${CLIENT_ID}&response_type=code&code_challenge_method=S256&code_challenge=${challenge}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = authUrl;
+  } catch (e) {
+    say('Auth error: ' + e.message);
   }
+}
 
-  function saveAuth(data) {
-    S = data;
-    try {
-      if (data) localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
-      else localStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch {}
-    updateAuthUi();
-  }
+let linkCache = {};
+async function getLink(path) {
+  if (linkCache[path]) return linkCache[path];
+  const j = await api('files/get_temporary_link', { path });
+  linkCache[path] = j.link;
+  return j.link;
+}
 
-  function updateAuthUi() {
-    authBtn.textContent = S && S.token ? "Reconnect" : "Connect";
-  }
+function prefetchLink(path) {
+  if (!path || linkCache[path]) return;
+  api('files/get_temporary_link', { path }).then(j => {
+    linkCache[path] = j.link;
+  }).catch(() => {});
+}
 
-  function base64UrlEncode(buf) {
-    return btoa(String.fromCharCode(...new Uint8Array(buf)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-  }
+async function extractEmbeddedArt(audioUrl) {
+  if (!window.jsmediatags) return '';
+  try {
+    const response = await fetch(audioUrl);
+    const reader = response.body.getReader();
+    let chunks = [];
+    let receivedLength = 0;
 
-  async function generatePKCE() {
-    const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
-    const verifier = base64UrlEncode(verifierBytes);
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-    const challenge = base64UrlEncode(digest);
-    return { verifier, challenge };
-  }
-
-  async function startAuth() {
-    if (!CLIENT_ID || CLIENT_ID === "YOUR_DROPBOX_APP_KEY") {
-      setStatus("Set CLIENT_ID in index.html");
-      libEl.classList.add("open");
-      return;
-    }
-    const { verifier, challenge } = await generatePKCE();
-    sessionStorage.setItem(VERIFIER_KEY, verifier);
-    const params = new URLSearchParams({
-      client_id: CLIENT_ID,
-      response_type: "code",
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      token_access_type: "offline",
-      redirect_uri: REDIRECT_URI
-    });
-    window.location.href = `https://www.dropbox.com/oauth2/authorize?${params.toString()}`;
-  }
-
-  async function exchangeCodeForToken(code) {
-    const verifier = sessionStorage.getItem(VERIFIER_KEY);
-    sessionStorage.removeItem(VERIFIER_KEY);
-    if (!verifier) return;
-
-    const body = new URLSearchParams({
-      code,
-      grant_type: "authorization_code",
-      client_id: CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      code_verifier: verifier
-    });
-
-    const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString()
-    });
-    if (!res.ok) throw new Error("Token exchange failed");
-    const json = await res.json();
-    saveAuth({
-      token: json.access_token,
-      refresh_token: json.refresh_token || (S && S.refresh_token) || null
-    });
-  }
-
-  async function refreshAccessToken() {
-    if (!S || !S.refresh_token) {
-      saveAuth(null);
-      throw new Error("Authentication required");
-    }
-    const body = new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: S.refresh_token,
-      client_id: CLIENT_ID
-    });
-    const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString()
-    });
-    if (!res.ok) {
-      saveAuth(null);
-      throw new Error("Session expired");
-    }
-    const json = await res.json();
-    saveAuth({
-      token: json.access_token,
-      refresh_token: S.refresh_token
-    });
-    return S.token;
-  }
-
-  async function dbxRpc(endpoint, payload, retry = true) {
-    if (!S || !S.token) throw new Error("Not connected to Dropbox");
-    const res = await fetch(`https://api.dropboxapi.com/2/${endpoint}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${S.token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    if (res.status === 401 && retry) {
-      await refreshAccessToken();
-      return dbxRpc(endpoint, payload, false);
-    }
-    if (!res.ok) throw new Error(`Dropbox error (${res.status})`);
-    return res.json();
-  }
-
-  function hasAudioExt(name = "") {
-    const lower = name.toLowerCase();
-    return AUDIO_EXTS.some((ext) => lower.endsWith(ext));
-  }
-
-  function naturalSort(a, b) {
-    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-  }
-
-  function formatTime(sec) {
-    if (!Number.isFinite(sec) || sec < 0) return "--:--";
-    const total = Math.floor(sec);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-
-  function setStatus(text) {
-    msgEl.textContent = text;
-  }
-
-  function updateTrackDisplay() {
-    if (!tracks.length || idx < 0) {
-      trkEl.textContent = "T--/--";
-      return;
-    }
-    const miniTag = tracks.length <= 4 ? " [8cm Single]" : "";
-    trkEl.textContent = `T${String(idx + 1).padStart(2, "0")}/${String(tracks.length).padStart(2, "0")}${miniTag}`;
-  }
-
-  function updatePlayIcon() {
-    const playing = !audio.paused && !!audio.src;
-    ppiEl.innerHTML = playing
-      ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z" />'
-      : '<path d="M8 5v14l11-7z" />';
-    if (playing) startSpin();
-    else stopSpin();
-    updateMediaSessionState();
-  }
-
-  function startSpin() {
-    if (rafId !== null) return;
-    lastFrameTime = performance.now();
-    const tick = (now) => {
-      const dt = now - lastFrameTime;
-      lastFrameTime = now;
-      spinAngle = (spinAngle + dt * 0.06) % 360;
-      rotorEl.style.transform = `rotate(${spinAngle}deg)`;
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function stopSpin() {
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-    lastFrameTime = null;
-  }
-
-  function setDiscArtwork(url) {
-    if (url) {
-      artEl.style.backgroundImage = `url("${url}")`;
-      discEl.classList.add("has-art");
-    } else {
-      artEl.style.backgroundImage = "";
-      discEl.classList.remove("has-art");
-    }
-  }
-
-  function runDiscAnimation(type, callback) {
-    isAnimatingDisc = true;
-    discEl.classList.remove("empty", "inserting", "ejecting");
-    void discEl.offsetWidth;
-    discEl.classList.add(type);
-
-    const onEnd = () => {
-      discEl.removeEventListener("animationend", onEnd);
-      discEl.classList.remove(type);
-      if (type === "ejecting") {
-        discEl.classList.add("empty");
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      receivedLength += value.length;
+      if (receivedLength >= 256 * 1024) {
+        reader.cancel();
+        break;
       }
-      isAnimatingDisc = false;
-      if (callback) callback();
-      if (pendingTrayRequest) {
-        const nextReq = pendingTrayRequest;
-        pendingTrayRequest = null;
-        nextReq();
+    }
+
+    let position = 0;
+    let totalArray = new Uint8Array(receivedLength);
+    for (let chunk of chunks) {
+      totalArray.set(chunk, position);
+      position += chunk.length;
+    }
+
+    const blob = new Blob([totalArray]);
+
+    return new Promise(resolve => {
+      window.jsmediatags.read(blob, {
+        onSuccess: tag => {
+          const pic = tag.tags && tag.tags.picture;
+          if (pic && pic.data) {
+            let base64 = '';
+            const bytes = new Uint8Array(pic.data);
+            for (let i = 0; i < bytes.byteLength; i++) base64 += String.fromCharCode(bytes[i]);
+            resolve(`data:${pic.format || 'image/jpeg'};base64,${window.btoa(base64)}`);
+          } else {
+            resolve('');
+          }
+        },
+        onError: () => resolve('')
+      });
+    });
+  } catch (e) {
+    return '';
+  }
+}
+
+let folderArtCache = {};
+async function getFolderArt(folderPath) {
+  if (folderArtCache[folderPath] !== undefined) return folderArtCache[folderPath];
+  try {
+    let subJ = await api('files/list_folder', { path: folderPath, recursive: false, include_mounted_folders: true });
+    let subEntries = subJ.entries || [];
+
+    const imgFile = subEntries.find(isImage);
+    if (imgFile) {
+      const linkRes = await api('files/get_temporary_link', { path: imgFile.path_lower });
+      folderArtCache[folderPath] = linkRes.link;
+      return linkRes.link;
+    }
+
+    const audioFiles = subEntries.filter(isAudio);
+    if (audioFiles.length > 0) {
+      const audioLink = await getLink(audioFiles[0].path_lower);
+      const embeddedArt = await extractEmbeddedArt(audioLink);
+      if (embeddedArt) {
+        folderArtCache[folderPath] = embeddedArt;
+        return embeddedArt;
       }
-    };
-    discEl.addEventListener("animationend", onEnd);
+    }
+  } catch (e) {}
+  folderArtCache[folderPath] = '';
+  return '';
+}
+
+let spinAngle = 0, lastTime = null, isSpinning = false, spinReq = null;
+function animateSpin(timestamp) {
+  if (!isSpinning) return;
+  if (!lastTime) lastTime = timestamp;
+  const delta = timestamp - lastTime;
+  lastTime = timestamp;
+  spinAngle = (spinAngle + delta * 0.06) % 360;
+  const rotor = $('#disc-rotor');
+  if (rotor) rotor.style.transform = `rotate(${spinAngle}deg)`;
+  spinReq = requestAnimationFrame(animateSpin);
+}
+
+function startSpin() {
+  if (isSpinning) return;
+  isSpinning = true;
+  lastTime = null;
+  spinReq = requestAnimationFrame(animateSpin);
+}
+
+function stopSpin() {
+  isSpinning = false;
+  if (spinReq) {
+    cancelAnimationFrame(spinReq);
+    spinReq = null;
   }
+}
 
-  function loadDiscIntoTray({ title, folderPath, folderTracks, folderEntries, autoPlayIndex = -1 }) {
-    const execute = () => {
-      disc = title;
-      currentAlbumPath = folderPath;
-      tracks = folderTracks;
-      idx = folderTracks.length ? (autoPlayIndex >= 0 ? autoPlayIndex : 0) : -1;
+const save = v => { try { v ? localStorage.setItem('tk_dbx_auth', JSON.stringify(v)) : localStorage.removeItem('tk_dbx_auth'); } catch (e) {} };
+const load = () => { try { return JSON.parse(localStorage.getItem('tk_dbx_auth')); } catch (e) { return null; } };
+const fmt = t => isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '--:--';
+const pad = n => String(n).padStart(2, '0');
+const say = t => $('#msg').textContent = t;
+const isAudio = f => f['.tag'] === 'file' && /\.(mp3|flac|m4a|aac|wav|ogg)$/i.test(f.name);
+const isImage = f => f['.tag'] === 'file' && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name);
+const clean = n => n.replace(/\.[^.]+$/, '');
+const isMiniSingle = list => list.length > 0 && list.length <= 4;
 
-      labEl.textContent = title;
-      discEl.classList.toggle("mini-cd", folderTracks.length > 0 && folderTracks.length <= 4);
-      setDiscArtwork(null);
-      updateTrackDisplay();
+function updateSeekFill() {
+  const el = $('#seek');
+  const pct = (el.value / el.max) * 100;
+  el.style.background = el.disabled ? '#0c0c0e' : `linear-gradient(90deg, var(--braun-orange) ${pct}%, #0c0c0e ${pct}%)`;
+}
 
-      runDiscAnimation("inserting", async () => {
-        resolveAlbumArtwork(folderPath, folderEntries, folderTracks);
-        if (autoPlayIndex >= 0 && tracks[autoPlayIndex]) {
-          await playTrackAt(autoPlayIndex);
-        } else {
-          setStatus(title || "Disc Ready");
-          timeEl.textContent = tracks.length ? "00:00" : "--:--";
-        }
-      });
-    };
-
-    if (isAnimatingDisc) {
-      pendingTrayRequest = execute;
-      return;
-    }
-
-    if (!discEl.classList.contains("empty")) {
-      runDiscAnimation("ejecting", execute);
-    } else {
-      execute();
-    }
-  }
-
-  async function resolveAlbumArtwork(folderPath, entries, albumTracks) {
-    if (coverCache.has(folderPath)) {
-      setDiscArtwork(coverCache.get(folderPath));
-      return;
-    }
-
-    const coverFile = (entries || []).find((e) => e[".tag"] === "file" && COVER_NAMES.includes(e.name.toLowerCase()));
-    if (coverFile) {
-      try {
-        const url = await getTempLink(coverFile.path_lower || coverFile.path_display);
-        coverCache.set(folderPath, url);
-        if (currentAlbumPath === folderPath) setDiscArtwork(url);
-        return;
-      } catch {}
-    }
-
-    const firstAudio = albumTracks && albumTracks[0];
-    if (firstAudio && window.jsmediatags) {
-      try {
-        const url = await getTempLink(firstAudio.path_lower || firstAudio.path_display);
-        const res = await fetch(url, { headers: { Range: "bytes=0-262143" } });
-        const buf = await res.arrayBuffer();
-        window.jsmediatags.read(new Blob([buf]), {
-          onSuccess: (tag) => {
-            const pic = tag.tags && tag.tags.picture;
-            if (pic && pic.data) {
-              const bytes = new Uint8Array(pic.data);
-              let binary = "";
-              for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-              const dataUrl = `data:${pic.format || "image/jpeg"};base64,${btoa(binary)}`;
-              coverCache.set(folderPath, dataUrl);
-              if (currentAlbumPath === folderPath) setDiscArtwork(dataUrl);
-            }
-          },
-          onError: () => {}
-        });
-      } catch {}
-    }
-  }
-
-  async function getTempLink(path) {
-    if (linkCache.has(path)) return linkCache.get(path);
-    const data = await dbxRpc("files/get_temporary_link", { path });
-    linkCache.set(path, data.link);
-    return data.link;
-  }
-
-  function prefetchNextTrack(currentIndex) {
-    const nextIdx = currentIndex + 1;
-    if (nextIdx >= 0 && nextIdx < tracks.length) {
-      const t = tracks[nextIdx];
-      getTempLink(t.path_lower || t.path_display).catch(() => {});
-    }
-  }
-
-  function haltPlayback(resetPosition = true) {
-    playSessionId++;
-    audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
-    if (resetPosition) {
-      seekEl.value = 0;
-      timeEl.textContent = tracks.length ? "00:00" : "--:--";
-    }
-    updatePlayIcon();
-  }
-
-  async function playTrackAt(targetIdx) {
-    if (!tracks.length || targetIdx < 0 || targetIdx >= tracks.length) return;
-    const session = ++playSessionId;
-    idx = targetIdx;
-    const track = tracks[idx];
-    updateTrackDisplay();
-    renderList();
-    setStatus(track.name.replace(/\.[^/.]+$/, ""));
-    seekEl.value = 0;
-    timeEl.textContent = "00:00";
-
-    try {
-      const link = await getTempLink(track.path_lower || track.path_display);
-      if (session !== playSessionId) return;
-      audio.src = link;
-      await audio.play();
-      if (session !== playSessionId) return;
-      updatePlayIcon();
-      updateMediaSessionMetadata(track);
-      prefetchNextTrack(idx);
-    } catch (err) {
-      if (session !== playSessionId) return;
-      setStatus(err.message || "Playback failed");
-      updatePlayIcon();
-    }
-  }
-
-  function pickNextIndex(fromEnd = false) {
-    if (!tracks.length) return -1;
-    if (shuffle && tracks.length > 1) {
-      let next = Math.floor(Math.random() * tracks.length);
-      if (next === idx) next = (idx + 1) % tracks.length;
-      return next;
-    }
-    if (idx + 1 < tracks.length) return idx + 1;
-    if (repeatMode === "all") return 0;
-    return fromEnd ? -1 : 0;
-  }
-
-  function pickPrevIndex() {
-    if (!tracks.length) return -1;
-    if (shuffle && tracks.length > 1) {
-      let prev = Math.floor(Math.random() * tracks.length);
-      if (prev === idx) prev = (idx - 1 + tracks.length) % tracks.length;
-      return prev;
-    }
-    if (idx - 1 >= 0) return idx - 1;
-    return repeatMode === "all" ? tracks.length - 1 : 0;
-  }
-
-  async function openFolder(path, name) {
-    const session = ++folderSessionId;
-    if (!S || !S.token) {
-      renderCrumbs();
-      listEl.innerHTML = '<div class="empty-state">Connect Dropbox to browse your music folders.</div>';
-      return;
-    }
-    setStatus("Loading folder...");
-    listEl.innerHTML = '<div class="empty-state">Loading...</div>';
-
-    try {
-      const res = await dbxRpc("files/list_folder", { path });
-      if (session !== folderSessionId) return;
-      currentEntries = res.entries || [];
-      renderCrumbs();
-      renderList();
-      setStatus(disc || "Choose a CD folder");
-    } catch (err) {
-      if (session !== folderSessionId) return;
-      listEl.innerHTML = `<div class="empty-state">${err.message}</div>`;
-      setStatus(err.message);
-    }
-  }
-
-  function renderCrumbs() {
-    crumbsEl.innerHTML = "";
-    stack.forEach((node, i) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "crumb" + (i === stack.length - 1 ? " current" : "");
-      btn.textContent = node.name;
-      btn.addEventListener("click", () => {
-        if (i === stack.length - 1) return;
-        stack = stack.slice(0, i + 1);
-        openFolder(node.path, node.name);
-      });
-      crumbsEl.appendChild(btn);
+async function refreshAccessToken() {
+  if (!S || !S.refresh_token) return false;
+  try {
+    const res = await fetch('https://api.dropbox.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: S.refresh_token,
+        client_id: CLIENT_ID
+      })
     });
+    if (!res.ok) return false;
+    const data = await res.json();
+    S.token = data.access_token;
+    if (data.refresh_token) S.refresh_token = data.refresh_token;
+    save(S);
+    return true;
+  } catch (e) {
+    return false;
   }
+}
 
-  function renderList() {
-    const folders = currentEntries.filter((e) => e[".tag"] === "folder").sort(naturalSort);
-    const folderTracks = currentEntries.filter((e) => e[".tag"] === "file" && hasAudioExt(e.name)).sort(naturalSort);
-    listEl.innerHTML = "";
+async function api(method, params) {
+  if (!S || !S.token) throw new Error('Not authenticated');
 
-    if (!folders.length && !folderTracks.length) {
-      listEl.innerHTML = '<div class="empty-state">No folders or audio tracks here.</div>';
-      return;
-    }
-
-    folders.forEach((f) => {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "row";
-      row.innerHTML = `<span class="row-title">📁 ${escapeHtml(f.name)}</span><span class="row-meta">FOLDER</span>`;
-      row.addEventListener("click", async () => {
-        stack.push({ path: f.path_lower || f.path_display, name: f.name });
-        await openFolder(f.path_lower || f.path_display, f.name);
-        const subAudio = currentEntries.filter((e) => e[".tag"] === "file" && hasAudioExt(e.name)).sort(naturalSort);
-        if (subAudio.length) {
-          haltPlayback(true);
-          loadDiscIntoTray({
-            title: f.name,
-            folderPath: f.path_lower || f.path_display,
-            folderTracks: subAudio,
-            folderEntries: currentEntries,
-            autoPlayIndex: -1
-          });
-        }
-      });
-      listEl.appendChild(row);
-    });
-
-    folderTracks.forEach((t, tIdx) => {
-      const activeFolder = (stack[stack.length - 1]?.path || "") === currentAlbumPath;
-      const isCurrent = activeFolder && tIdx === idx;
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "row" + (isCurrent ? " playing" : "");
-      row.innerHTML = `<span class="row-title">${escapeHtml(t.name.replace(/\.[^/.]+$/, ""))}</span><span class="row-meta">${String(tIdx + 1).padStart(2, "0")}</span>`;
-      row.addEventListener("click", () => {
-        const curNode = stack[stack.length - 1];
-        const albumTitle = curNode ? curNode.name : "Disc";
-        const albumPath = curNode ? curNode.path : "";
-        if (currentAlbumPath !== albumPath || tracks.length !== folderTracks.length) {
-          haltPlayback(true);
-          loadDiscIntoTray({
-            title: albumTitle,
-            folderPath: albumPath,
-            folderTracks,
-            folderEntries: currentEntries,
-            autoPlayIndex: tIdx
-          });
-        } else {
-          playTrackAt(tIdx);
-        }
-      });
-      listEl.appendChild(row);
-    });
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function updateRepeatUi() {
-    repBtn.classList.toggle("on", repeatMode !== "off");
-    const badge = repeatMode === "one"
-      ? '<span style="font-size:10px;font-weight:800;line-height:1;">1</span>'
-      : "";
-    repIconEl.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="17 1 21 5 17 9" />
-        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-        <polyline points="7 23 3 19 7 15" />
-        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-      </svg>${badge}`;
-  }
-
-  // MediaSession setup (track controls over ±10s skip)
-  function initMediaSession() {
-    if (!("mediaSession" in navigator)) return;
-    navigator.mediaSession.setActionHandler("seekbackward", null);
-    navigator.mediaSession.setActionHandler("seekforward", null);
-
-    navigator.mediaSession.setActionHandler("play", async () => {
-      if (!audio.src && tracks.length) {
-        await playTrackAt(idx >= 0 ? idx : 0);
-      } else if (audio.src) {
-        await audio.play();
-        updatePlayIcon();
-      }
-    });
-
-    navigator.mediaSession.setActionHandler("pause", () => {
-      audio.pause();
-      updatePlayIcon();
-    });
-
-    navigator.mediaSession.setActionHandler("stop", () => {
-      haltPlayback(true);
-      setStatus(disc || "Stopped");
-    });
-
-    navigator.mediaSession.setActionHandler("previoustrack", () => {
-      prevBtn.click();
-    });
-
-    navigator.mediaSession.setActionHandler("nexttrack", () => {
-      nextBtn.click();
-    });
-
-    navigator.mediaSession.setActionHandler("seekto", (details) => {
-      if (typeof details.seekTime === "number" && Number.isFinite(audio.duration)) {
-        audio.currentTime = Math.max(0, Math.min(details.seekTime, audio.duration));
-        updateMediaSessionState();
-      }
-    });
-  }
-
-  function updateMediaSessionMetadata(track) {
-    if (!("mediaSession" in navigator) || !track) return;
-    const artwork = coverCache.get(currentAlbumPath)
-      ? [{ src: coverCache.get(currentAlbumPath), sizes: "512x512", type: "image/jpeg" }]
-      : [];
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.name.replace(/\.[^/.]+$/, ""),
-      artist: "TK-100 Compact Disc",
-      album: disc || "Compact Disc",
-      artwork
-    });
-  }
-
-  function updateMediaSessionState() {
-    if (!("mediaSession" in navigator)) return;
-    navigator.mediaSession.playbackState = !audio.paused && audio.src ? "playing" : "paused";
-    if (Number.isFinite(audio.duration) && audio.duration > 0 && "setPositionState" in navigator.mediaSession) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: audio.duration,
-          playbackRate: audio.playbackRate || 1,
-          position: Math.min(audio.currentTime || 0, audio.duration)
-        });
-      } catch {}
-    }
-  }
-
-  // Event listeners
-  libToggle.addEventListener("click", () => {
-    const opening = !libEl.classList.contains("open");
-    libEl.classList.toggle("open", opening);
-    if (opening && !currentEntries.length) {
-      const top = stack[stack.length - 1] || { path: "", name: "TK_MusicPlayer" };
-      openFolder(top.path, top.name);
-    }
+  let res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${S.token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(params)
   });
 
-  authBtn.addEventListener("click", startAuth);
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      res = await fetch(`https://api.dropboxapi.com/2/${method}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${S.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      });
+    } else {
+      S = null;
+      save(null);
+      showLogin('Session expired. Please sign in again.');
+      throw new Error('Session expired');
+    }
+  }
 
-  tvBtn.addEventListener("click", () => {
-    const active = document.body.classList.toggle("tv-mode");
-    tvBtn.classList.toggle("active", active);
-    if (active) libEl.classList.remove("open");
+  if (!res.ok) {
+    const rawText = await res.text();
+    let msg = rawText;
+    try {
+      const errJson = JSON.parse(rawText);
+      msg = errJson.error_summary || errJson.user_message || rawText;
+    } catch (e) {}
+    throw new Error(msg || `Dropbox HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+function preloadImage(url) {
+  if (!url) return Promise.resolve();
+  return new Promise(resolve => {
+    const img = new Image();
+    const timer = setTimeout(resolve, 1500);
+    img.onload = () => { clearTimeout(timer); resolve(); };
+    img.onerror = () => { clearTimeout(timer); resolve(); };
+    img.src = url;
   });
+}
 
-  ppBtn.addEventListener("click", async () => {
-    if (!audio.src) {
-      if (tracks.length) {
-        await playTrackAt(idx >= 0 ? idx : 0);
+function bindMediaSessionHandlers() {
+  if (!('mediaSession' in navigator)) return;
+  const m = navigator.mediaSession;
+
+  // Clear seekbackward/seekforward so iOS lock screen shows Previous/Next track controls instead of ±10s skip
+  try { m.setActionHandler('seekbackward', null); } catch (e) {}
+  try { m.setActionHandler('seekforward', null); } catch (e) {}
+
+  try {
+    m.setActionHandler('play', () => {
+      if (!tracks.length) return;
+      if (A.src && !A.src.startsWith('data:') && A.paused && !A.ended) {
+        A.play().catch(() => playIdx(Math.max(idx, 0)));
       } else {
-        const curNode = stack[stack.length - 1];
-        const folderAudio = currentEntries.filter((e) => e[".tag"] === "file" && hasAudioExt(e.name)).sort(naturalSort);
-        if (folderAudio.length && curNode) {
-          loadDiscIntoTray({
-            title: curNode.name,
-            folderPath: curNode.path,
-            folderTracks: folderAudio,
-            folderEntries: currentEntries,
-            autoPlayIndex: 0
-          });
-        } else {
-          libEl.classList.add("open");
-          setStatus("Choose a CD folder");
-        }
+        playIdx(Math.max(idx, 0));
       }
-      return;
-    }
-
-    if (audio.paused) {
-      await audio.play();
-      updatePlayIcon();
-    } else {
-      audio.pause();
-      updatePlayIcon();
-    }
-  });
-
-  prevBtn.addEventListener("click", async () => {
-    if (!tracks.length) return;
-    if (audio.currentTime > 3) {
-      audio.currentTime = 0;
-      return;
-    }
-    const prevIdx = pickPrevIndex();
-    if (prevIdx >= 0) await playTrackAt(prevIdx);
-  });
-
-  nextBtn.addEventListener("click", async () => {
-    if (!tracks.length) return;
-    const nextIdx = pickNextIndex(false);
-    if (nextIdx >= 0) await playTrackAt(nextIdx);
-  });
-
-  stopBtn.addEventListener("click", () => {
-    haltPlayback(true);
-    setStatus(disc || "Stopped");
-  });
-
-  shufBtn.addEventListener("click", () => {
-    shuffle = !shuffle;
-    shufBtn.classList.toggle("on", shuffle);
-  });
-
-  repBtn.addEventListener("click", () => {
-    repeatMode = repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off";
-    updateRepeatUi();
-  });
-
-  ejectBtn.addEventListener("click", () => {
-    haltPlayback(true);
-    tracks = [];
-    disc = "";
-    currentAlbumPath = "";
-    idx = -1;
-    labEl.textContent = "";
-    setDiscArtwork(null);
-    discEl.classList.remove("mini-cd");
-    updateTrackDisplay();
-    timeEl.textContent = "--:--";
-    setStatus("Ejected");
-    runDiscAnimation("ejecting", () => {
-      setStatus("Choose a CD folder");
     });
-    stack = [{ path: "", name: "TK_MusicPlayer" }];
-    if (libEl.classList.contains("open")) {
-      openFolder("", "TK_MusicPlayer");
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('pause', () => {
+      A.pause();
+      stopSpin();
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('stop', () => {
+      stopPlayback();
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('previoustrack', () => {
+      if (A.currentTime > 3) {
+        A.currentTime = 0;
+        syncMediaPosition();
+      } else {
+        step(-1);
+      }
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('nexttrack', () => {
+      step(1);
+    });
+  } catch (e) {}
+
+  try {
+    m.setActionHandler('seekto', details => {
+      if (details && isFinite(details.seekTime) && isFinite(A.duration)) {
+        A.currentTime = Math.max(0, Math.min(details.seekTime, A.duration));
+        syncMediaPosition();
+      }
+    });
+  } catch (e) {}
+}
+
+function syncMediaPosition() {
+  if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
+  if (!isFinite(A.duration) || A.duration <= 0) return;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: A.duration,
+      playbackRate: A.playbackRate || 1,
+      position: Math.min(A.currentTime || 0, A.duration)
+    });
+  } catch (e) {}
+}
+
+function updateMediaSession(titleText, albumText, artSrc) {
+  if (!('mediaSession' in navigator)) return;
+  bindMediaSessionHandlers();
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: titleText,
+    artist: 'TK-100 Compact Disc',
+    album: albumText,
+    artwork: artSrc ? [
+      { src: artSrc, sizes: '256x256', type: 'image/jpeg' },
+      { src: artSrc, sizes: '512x512', type: 'image/jpeg' }
+    ] : []
+  });
+  syncMediaPosition();
+}
+
+function showLogin(note) {
+  const lib = $('#lib');
+  lib.classList.add('open');
+  $('#lib-toggle').setAttribute('aria-expanded', 'true');
+  lib.innerHTML = `<h2>Connect to Dropbox</h2>
+  <button class="go" id="login-btn">Sign in with Dropbox</button>
+  <p class="note">${note || 'Sign in securely through Dropbox. This establishes a permanent connection with automatic token refreshing.'}</p>`;
+  $('#login-btn').onclick = startLogin;
+}
+
+async function openFolder(path, autoLoadAlbum = false) {
+  const fSession = ++folderSessionId;
+  say('Reading…');
+  try {
+    let j = await api('files/list_folder', { path: path, recursive: false, include_mounted_folders: true });
+    let entries = j.entries || [];
+    while (j.has_more && j.cursor) {
+      j = await api('files/list_folder/continue', { cursor: j.cursor });
+      entries = entries.concat(j.entries || []);
+    }
+    if (fSession !== folderSessionId) return;
+
+    view = entries
+      .filter(f => f['.tag'] === 'folder' || isAudio(f) || isImage(f))
+      .sort((a, b) => ((b['.tag'] === 'folder' ? 1 : 0) - (a['.tag'] === 'folder' ? 1 : 0)) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+    const audioFiles = view.filter(isAudio);
+    const currentFolder = stack[stack.length - 1];
+
+    if (stack.length === 1) {
+      say('Choose a CD folder');
+    } else if (audioFiles.length > 0) {
+      const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+      say(tracks.length > 0 && currentAlbumPath === currentFolder.path ? `CD Loaded: ${disc}${badge}` : 'CD ready - choose a track');
+    } else {
+      say(view.some(f => f['.tag'] === 'folder') ? 'Choose a sub-folder' : 'Folder is empty');
+    }
+
+    drawLib();
+    draw();
+
+    if (autoLoadAlbum && audioFiles.length > 0 && currentAlbumPath !== currentFolder.path) {
+      await loadAlbumIntoTray(audioFiles, currentFolder.name, currentFolder.path, view, 0, false);
+    }
+  } catch (e) {
+    if (fSession !== folderSessionId) return;
+    say('Error: ' + e.message);
+    showLogin('Connection failed: ' + e.message + '. Please check authorization.');
+  }
+}
+
+async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
+  if (isAnimating) {
+    pendingTrayRequest = { audioFiles, albumName, albumPath, folderView, startIdx, autoPlayAfterLoad };
+    return;
+  }
+
+  // Stop-on-Disc-Change invariant: halt active audio and reset timer/scrubber
+  const loadSession = ++playSessionId;
+  A.pause();
+  A.removeAttribute('src');
+  stopSpin();
+  $('#time').textContent = '--:--';
+  $('#seek').value = 0;
+  updateSeekFill();
+
+  isAnimating = true;
+
+  let resolvedCover = '';
+  const imgFile = folderView.find(isImage);
+  if (imgFile) {
+    try {
+      const linkRes = await api('files/get_temporary_link', { path: imgFile.path_lower });
+      resolvedCover = linkRes.link;
+    } catch (e) {}
+  }
+
+  if (!resolvedCover && audioFiles.length > 0) {
+    try {
+      const firstLink = await getLink(audioFiles[0].path_lower);
+      resolvedCover = await extractEmbeddedArt(firstLink);
+    } catch (e) {}
+  }
+
+  await preloadImage(resolvedCover);
+
+  if (loadSession !== playSessionId && !pendingTrayRequest) {
+    isAnimating = false;
+    return;
+  }
+
+  const discEl = $('#disc');
+
+  if (tracks.length > 0 && currentAlbumPath && currentAlbumPath !== albumPath) {
+    discEl.classList.add('ejecting');
+    await new Promise(r => setTimeout(r, 900));
+    discEl.classList.remove('ejecting');
+  }
+
+  tracks = audioFiles.slice();
+  disc = albumName;
+  currentAlbumPath = albumPath;
+  idx = Math.max(0, Math.min(startIdx, tracks.length - 1));
+  folderCoverUrl = resolvedCover;
+  coverUrl = resolvedCover;
+
+  spinAngle = 0;
+  const rotor = $('#disc-rotor');
+  if (rotor) rotor.style.transform = 'rotate(0deg)';
+
+  draw();
+  drawLib();
+
+  discEl.classList.add('inserting');
+  await new Promise(r => setTimeout(r, 1100));
+  discEl.classList.remove('inserting');
+  isAnimating = false;
+
+  if (pendingTrayRequest) {
+    const nextReq = pendingTrayRequest;
+    pendingTrayRequest = null;
+    if (nextReq.albumPath === currentAlbumPath) {
+      if (nextReq.autoPlayAfterLoad) {
+        playIdx(nextReq.startIdx);
+      } else {
+        idx = nextReq.startIdx;
+        draw();
+        drawLib();
+      }
+    } else {
+      await loadAlbumIntoTray(
+        nextReq.audioFiles,
+        nextReq.albumName,
+        nextReq.albumPath,
+        nextReq.folderView,
+        nextReq.startIdx,
+        nextReq.autoPlayAfterLoad
+      );
+    }
+    return;
+  }
+
+  const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  say(`CD Loaded: ${albumName}${badge} - ready to play`);
+
+  if (autoPlayAfterLoad) {
+    playIdx(idx);
+  }
+}
+
+function drawLib() {
+  const lib = $('#lib');
+  const currentFolder = stack[stack.length - 1];
+  lib.innerHTML = `<h2>${stack.length === 1 && !tracks.length ? 'Choose a CD' : stack.map(s => s.name).join(' / ')}</h2>`;
+  if (stack.length > 1) {
+    lib.append(row('↑', 'Back', null, () => {
+      stack.pop();
+      openFolder(stack[stack.length - 1].path, false);
+    }));
+  }
+
+  const files = view.filter(isAudio);
+  const hasSubfolders = view.some(f => f['.tag'] === 'folder');
+
+  view.forEach(f => {
+    if (f['.tag'] === 'folder') {
+      const r = rowWithThumb('▸', f.name, f.path_lower, () => {
+        stack.push({ path: f.path_lower, name: f.name });
+        openFolder(f.path_lower, true);
+      });
+      lib.append(r);
+    } else if (isAudio(f)) {
+      const n = files.indexOf(f);
+      const albumSnapshot = files.slice();
+      const viewSnapshot = view.slice();
+      const folderPath = currentFolder.path;
+      const folderName = currentFolder.name;
+      const r = row(pad(n + 1), clean(f.name), null, async () => {
+        if (isAnimating && pendingTrayRequest && pendingTrayRequest.albumPath === folderPath) {
+          pendingTrayRequest.startIdx = n;
+          pendingTrayRequest.autoPlayAfterLoad = true;
+          return;
+        }
+        if (currentAlbumPath !== folderPath) {
+          await loadAlbumIntoTray(albumSnapshot, folderName, folderPath, viewSnapshot, n, true);
+        } else if (isAnimating) {
+          pendingTrayRequest = {
+            audioFiles: albumSnapshot,
+            albumName: folderName,
+            albumPath: folderPath,
+            folderView: viewSnapshot,
+            startIdx: n,
+            autoPlayAfterLoad: true
+          };
+        } else {
+          playIdx(n);
+        }
+      });
+      if (currentAlbumPath === folderPath && idx === n) r.classList.add('cur');
+      lib.append(r);
     }
   });
 
-  seekEl.addEventListener("input", () => {
-    isSeeking = true;
-    if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      const previewSec = (Number(seekEl.value) / 1000) * audio.duration;
-      timeEl.textContent = formatTime(previewSec);
+  if (!hasSubfolders && files.length === 0) {
+    lib.insertAdjacentHTML('beforeend', '<p class="note">This folder has no music or sub-folders.</p>');
+  }
+
+  const so = document.createElement('button');
+  so.className = 'mini';
+  so.style.marginTop = '12px';
+  so.textContent = 'Sign out';
+  so.onclick = () => {
+    ++playSessionId;
+    ++folderSessionId;
+    A.pause();
+    A.removeAttribute('src');
+    S = null;
+    save(null);
+    tracks = [];
+    idx = -1;
+    disc = '';
+    currentAlbumPath = '';
+    folderCoverUrl = '';
+    coverUrl = '';
+    stopSpin();
+    draw();
+    showLogin();
+  };
+  lib.append(so);
+}
+
+function row(n, t, thumbUrl, fn) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.tabIndex = 0;
+  d.setAttribute('role', 'button');
+  const icon = document.createElement('i');
+  icon.textContent = n;
+  const img = document.createElement('img');
+  img.className = 'thumb';
+  if (thumbUrl) {
+    img.src = thumbUrl;
+    img.style.display = 'block';
+    icon.style.display = 'none';
+  }
+  const span = document.createElement('span');
+  span.textContent = t;
+  d.append(icon, img, span);
+  d.onclick = fn;
+  d.onkeydown = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
     }
-  });
+  };
+  return d;
+}
 
-  seekEl.addEventListener("change", () => {
-    if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      audio.currentTime = (Number(seekEl.value) / 1000) * audio.duration;
-      updateMediaSessionState();
+function rowWithThumb(n, t, folderPath, fn) {
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.tabIndex = 0;
+  d.setAttribute('role', 'button');
+  const icon = document.createElement('i');
+  icon.textContent = n;
+  const img = document.createElement('img');
+  img.className = 'thumb';
+
+  if (currentAlbumPath === folderPath && coverUrl) {
+    img.src = coverUrl;
+    img.style.display = 'block';
+    icon.style.display = 'none';
+  } else if (folderArtCache[folderPath]) {
+    img.src = folderArtCache[folderPath];
+    img.style.display = 'block';
+    icon.style.display = 'none';
+  } else if (folderArtCache[folderPath] === undefined) {
+    getFolderArt(folderPath).then(url => {
+      if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        icon.style.display = 'none';
+      }
+    });
+  }
+
+  const span = document.createElement('span');
+  span.textContent = t;
+  d.append(icon, img, span);
+  d.onclick = fn;
+  d.onkeydown = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
     }
-    isSeeking = false;
-  });
+  };
+  return d;
+}
 
-  audio.addEventListener("timeupdate", () => {
-    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
-    if (!isSeeking) {
-      seekEl.value = String(Math.round((audio.currentTime / audio.duration) * 1000));
-      timeEl.textContent = formatTime(audio.currentTime);
+const cur = () => tracks[idx] || { name: '' };
+
+function draw() {
+  const discEl = $('#disc');
+  const artEl = $('#disc-art');
+
+  discEl.classList.toggle('empty', !tracks.length && !coverUrl);
+  discEl.classList.toggle('mini-cd', isMiniSingle(tracks));
+
+  if (coverUrl) {
+    artEl.src = coverUrl;
+    discEl.classList.add('has-art');
+  } else {
+    artEl.src = '';
+    discEl.classList.remove('has-art');
+  }
+
+  $('#lab').textContent = '';
+  $('#trk').textContent = tracks.length > 0 ? `T${pad(idx + 1)}/${pad(tracks.length)}` : 'T--/--';
+  $('#seek').disabled = !tracks.length;
+  updateSeekFill();
+}
+
+async function playIdx(i) {
+  if (!tracks.length || i < 0 || i >= tracks.length) return;
+  const sessionId = ++playSessionId;
+  if (!unlocked) {
+    A.src = SILENT;
+    try { await A.play(); } catch (e) {}
+    unlocked = true;
+    if (sessionId !== playSessionId) return;
+  }
+  idx = i;
+  const trackToPlay = tracks[idx];
+  const albumAtStart = currentAlbumPath;
+  const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  draw();
+  drawLib();
+  say(`Reading disc…${badge}`);
+
+  try {
+    const link = await getLink(trackToPlay.path_lower);
+    if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
+
+    A.src = link;
+    await A.play();
+    if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
+
+    startSpin();
+    say(`${clean(trackToPlay.name)}${badge}`);
+
+    updateMediaSession(clean(trackToPlay.name), disc, coverUrl);
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+
+    drawLib();
+
+    if (idx + 1 < tracks.length) {
+      prefetchLink(tracks[idx + 1].path_lower);
     }
-  });
+  } catch (e) {
+    if (sessionId === playSessionId) {
+      say('Error: ' + e.message);
+    }
+  }
+}
 
-  audio.addEventListener("loadedmetadata", () => {
-    updateMediaSessionState();
-  });
+function stopPlayback() {
+  ++playSessionId;
+  A.pause();
+  stopSpin();
+  A.currentTime = 0;
+  $('#seek').value = 0;
+  $('#time').textContent = tracks.length ? '0:00' : '--:--';
+  updateSeekFill();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+  const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
+  say(tracks.length ? `${clean(cur().name)}${badge}` : 'No disc');
+}
 
-  audio.addEventListener("ended", async () => {
-    if (repeatMode === "one" && idx >= 0) {
-      await playTrackAt(idx);
+function step(d) {
+  if (!tracks.length) return;
+  if (shuffle && tracks.length > 1) {
+    let n;
+    do {
+      n = Math.floor(Math.random() * tracks.length);
+    } while (n === idx);
+    playIdx(n);
+    return;
+  }
+  const n = idx + d;
+  if (n >= 0 && n < tracks.length) {
+    playIdx(n);
+  } else if (d > 0) {
+    if (repeatMode === 'all') {
+      playIdx(0);
+    } else {
+      ++playSessionId;
+      A.pause();
+      stopSpin();
+      A.currentTime = 0;
+      $('#seek').value = 0;
+      updateSeekFill();
+      say('End of disc');
+    }
+  } else if (d < 0 && repeatMode === 'all') {
+    playIdx(tracks.length - 1);
+  }
+}
+
+$('#pp').onclick = async () => {
+  if (isAnimating) return;
+  if (stack.length === 1 && !tracks.length) {
+    say('Choose a CD folder first');
+    return;
+  }
+  const currentFolder = stack[stack.length - 1];
+  if (stack.length > 1 && (!tracks.length || currentAlbumPath !== currentFolder.path)) {
+    const files = view.filter(isAudio);
+    if (files.length > 0) {
+      await loadAlbumIntoTray(files, currentFolder.name, currentFolder.path, view, 0, true);
       return;
     }
-    const nextIdx = pickNextIndex(true);
-    if (nextIdx >= 0) {
-      await playTrackAt(nextIdx);
+  }
+  if (!tracks.length) {
+    say('Choose a CD folder first');
+    return;
+  }
+  if (!A.paused) {
+    A.pause();
+    stopSpin();
+  } else if (A.src && !A.src.startsWith('data:') && A.currentTime > 0 && !A.ended) {
+    A.play().catch(() => playIdx(Math.max(idx, 0)));
+  } else {
+    playIdx(Math.max(idx, 0));
+  }
+};
+
+$('#next').onclick = () => step(1);
+$('#prev').onclick = () => {
+  if (A.currentTime > 3) {
+    A.currentTime = 0;
+    syncMediaPosition();
+  } else {
+    step(-1);
+  }
+};
+$('#stop').onclick = stopPlayback;
+
+$('#shuf').onclick = e => {
+  shuffle = !shuffle;
+  e.currentTarget.setAttribute('aria-pressed', shuffle);
+};
+
+$('#rep').onclick = e => {
+  const order = ['off', 'all', 'one'];
+  repeatMode = order[(order.indexOf(repeatMode) + 1) % order.length];
+  const btn = e.currentTarget;
+  btn.setAttribute('aria-pressed', repeatMode !== 'off');
+  const label = repeatMode === 'off' ? 'Repeat: Off' : repeatMode === 'all' ? 'Repeat: All' : 'Repeat: One';
+  btn.setAttribute('aria-label', label);
+  btn.setAttribute('title', label);
+  $('#rep-icon').innerHTML = repeatMode === 'one' ? REP_IC.one : REP_IC.loop;
+};
+
+$('#lib-toggle').onclick = () => {
+  const isOpen = $('#lib').classList.toggle('open');
+  $('#lib-toggle').setAttribute('aria-expanded', isOpen);
+};
+
+$('#tv-mode').onclick = () => {
+  document.body.classList.toggle('tv-mode');
+  const active = document.body.classList.contains('tv-mode');
+  $('#tv-mode').setAttribute('aria-pressed', active);
+  $('#lib').classList.remove('open');
+  $('#lib-toggle').setAttribute('aria-expanded', 'false');
+};
+
+$('#eject').onclick = async () => {
+  if ((!tracks.length && !disc) || isAnimating) return;
+  ++playSessionId;
+  ++folderSessionId;
+  pendingTrayRequest = null;
+  isAnimating = true;
+
+  stopSpin();
+  const discEl = $('#disc');
+  discEl.classList.add('ejecting');
+  await new Promise(r => setTimeout(r, 900));
+  discEl.classList.remove('ejecting');
+
+  A.pause();
+  A.removeAttribute('src');
+  tracks = [];
+  idx = -1;
+  disc = '';
+  currentAlbumPath = '';
+  folderCoverUrl = '';
+  coverUrl = '';
+  draw();
+  $('#time').textContent = '--:--';
+  $('#seek').value = 0;
+  updateSeekFill();
+  say('Disc ejected');
+  isAnimating = false;
+
+  stack = [{ path: '', name: 'TK_MusicPlayer' }];
+  openFolder('', false);
+};
+
+$('#seek').oninput = e => {
+  if (isFinite(A.duration)) {
+    A.currentTime = e.target.value / 1000 * A.duration;
+    syncMediaPosition();
+  }
+  updateSeekFill();
+};
+
+A.onplay = () => {
+  startSpin();
+  $('#ppi').innerHTML = IC.pause;
+  $('#pp').setAttribute('aria-label', 'Pause');
+  bindMediaSessionHandlers();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  syncMediaPosition();
+};
+
+A.onpause = () => {
+  stopSpin();
+  $('#ppi').innerHTML = IC.play;
+  $('#pp').setAttribute('aria-label', 'Play');
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+  syncMediaPosition();
+};
+
+A.onloadedmetadata = () => {
+  syncMediaPosition();
+};
+
+A.ontimeupdate = () => {
+  if (A.src.startsWith('data:')) return;
+  $('#time').textContent = fmt(A.currentTime);
+  if (isFinite(A.duration)) {
+    $('#seek').value = A.currentTime / A.duration * 1000;
+    updateSeekFill();
+  }
+};
+
+A.onended = () => {
+  if (repeatMode === 'one') playIdx(idx);
+  else step(1);
+};
+
+A.onerror = () => {
+  if (!A.src.startsWith('data:')) say('Cannot play this file');
+};
+
+bindMediaSessionHandlers();
+
+// Initialization & OAuth Code Exchange Check
+const urlParams = new URLSearchParams(window.location.search);
+const authCode = urlParams.get('code');
+
+if (authCode) {
+  window.history.replaceState({}, document.title, window.location.pathname);
+  const verifier = localStorage.getItem('tk_verifier');
+  const redirectUri = window.location.origin + window.location.pathname;
+
+  fetch('https://api.dropbox.com/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: authCode,
+      client_id: CLIENT_ID,
+      code_verifier: verifier,
+      redirect_uri: redirectUri
+    })
+  }).then(res => res.json()).then(data => {
+    if (data.access_token) {
+      S = { token: data.access_token, refresh_token: data.refresh_token };
+      save(S);
+      openFolder('', false);
     } else {
-      haltPlayback(true);
-      setStatus(disc || "Playback Complete");
+      showLogin('Authentication failed. Please try again.');
     }
+  }).catch(() => {
+    showLogin('Authentication network error.');
   });
-
-  // Boot
-  (async function init() {
-    updateAuthUi();
-    updateRepeatUi();
-    initMediaSession();
-
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    if (code) {
-      window.history.replaceState({}, document.title, REDIRECT_URI);
-      try {
-        setStatus("Connecting Dropbox...");
-        await exchangeCodeForToken(code);
-        setStatus("Connected");
-        libEl.classList.add("open");
-        await openFolder("", "TK_MusicPlayer");
-      } catch (err) {
-        setStatus(err.message || "Auth failed");
-      }
-    } else if (S && S.token) {
-      openFolder("", "TK_MusicPlayer").catch(() => {});
-    }
-  })();
-})();
+} else {
+  S = load();
+  if (S && S.token) {
+    openFolder('', false);
+  } else {
+    showLogin();
+  }
+}
 </script>
 </body>
 </html>
