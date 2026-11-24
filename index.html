@@ -119,6 +119,10 @@
     padding: 12px;
     width: 100%;
     max-width: 390px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 0 auto var(--space);
     overflow: hidden;
     box-shadow:
@@ -129,7 +133,9 @@
 
   .disc {
     position: relative;
+    width: 100%;
     aspect-ratio: 1;
+    flex-shrink: 0;
     border-radius: 50%;
     background:
       radial-gradient(circle at center, transparent 28%, rgba(255, 255, 255, 0.04) 29%, transparent 30%, rgba(255, 255, 255, 0.03) 45%, transparent 46%, rgba(255, 255, 255, 0.04) 62%, transparent 63%),
@@ -152,9 +158,11 @@
 
   /* 8cm Mini CD Single (<= 4 tracks) */
   .disc.mini-cd {
-    width: 170px;
-    max-width: 170px;
-    margin: auto;
+    width: 52%;
+    max-width: 195px;
+    height: auto;
+    aspect-ratio: 1;
+    margin: 0;
   }
 
   .well-shadow {
