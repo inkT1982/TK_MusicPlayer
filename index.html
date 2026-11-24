@@ -275,8 +275,7 @@
       inset 0 1px 3px rgba(0, 0, 0, 0.8);
   }
   .disc.has-art .lab {
-    background: rgba(20, 20, 22, 0.4);
-    backdrop-filter: blur(2px);
+    background: rgba(20, 20, 22, 0.55);
   }
   .disc.empty .lab {
     background: radial-gradient(circle at 30% 30%, #1a1a1d, #0d0d0f);
@@ -869,7 +868,7 @@
   <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
 </main>
 
-<audio id="a" preload="auto" playsinline></audio>
+<audio id="a" preload="metadata" playsinline></audio>
 
 <script>
 const CLIENT_ID = 'dtcnff0rr7py9qc';
@@ -999,15 +998,15 @@ async function extractEmbeddedArt(audioUrl) {
   }
 }
 
-// Throttled folder art queue (max 2 concurrent requests, defers while animating)
+// Throttled folder art queue (max 2 concurrent requests, defers while animating or playing)
 let folderArtCache = {};
 let folderArtQueue = [];
 let activeFolderArtWorkers = 0;
 const MAX_FOLDER_ART_CONCURRENCY = 2;
 
 function pumpFolderArtQueue() {
-  if (isAnimating) {
-    setTimeout(pumpFolderArtQueue, 250);
+  if (isAnimating || (!A.paused && !A.ended && A.getAttribute('src') && !A.src.startsWith('data:'))) {
+    setTimeout(pumpFolderArtQueue, 400);
     return;
   }
   while (activeFolderArtWorkers < MAX_FOLDER_ART_CONCURRENCY && folderArtQueue.length > 0) {
@@ -1241,10 +1240,6 @@ function syncMediaPosition() {
 
 function guessImageMime(url) {
   if (!url) return 'image/jpeg';
-  if (url.startsWith('data:')) {
-    const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+);/);
-    return match ? match[1] : 'image/jpeg';
-  }
   const cleanUrl = url.split('?')[0].toLowerCase();
   if (cleanUrl.endsWith('.png')) return 'image/png';
   if (cleanUrl.endsWith('.webp')) return 'image/webp';
@@ -1253,17 +1248,37 @@ function guessImageMime(url) {
 }
 
 function updateMediaSession(titleText, albumText, artSrc) {
-  if (!('mediaSession' in navigator)) return;
-  const mime = guessImageMime(artSrc);
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: titleText,
-    artist: 'TK-100 Compact Disc',
-    album: albumText,
-    artwork: artSrc ? [
-      { src: artSrc, sizes: '256x256', type: mime },
-      { src: artSrc, sizes: '512x512', type: mime }
-    ] : []
-  });
+  if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+  // Avoid passing large base64 data URIs to external/AirPlay MediaSession artwork
+  const safeArtSrc = artSrc && !artSrc.startsWith('data:') ? artSrc : '';
+  const mime = guessImageMime(safeArtSrc);
+  const artworkList = safeArtSrc ? [
+    { src: safeArtSrc, sizes: '256x256', type: mime },
+    { src: safeArtSrc, sizes: '512x512', type: mime }
+  ] : [];
+
+  try {
+    if (navigator.mediaSession.metadata) {
+      navigator.mediaSession.metadata.title = titleText;
+      navigator.mediaSession.metadata.artist = 'TK-100 Compact Disc';
+      navigator.mediaSession.metadata.album = albumText;
+      navigator.mediaSession.metadata.artwork = artworkList;
+    } else {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: titleText,
+        artist: 'TK-100 Compact Disc',
+        album: albumText,
+        artwork: artworkList
+      });
+    }
+  } catch (_) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: titleText,
+      artist: 'TK-100 Compact Disc',
+      album: albumText,
+      artwork: artworkList
+    });
+  }
   syncMediaPosition();
 }
 
@@ -1328,7 +1343,7 @@ async function resolveAlbumCoverAsync(loadSession, albumPath, audioFiles, folder
     } catch (e) {}
   }
 
-  if (!resolvedCover && audioFiles.length > 0) {
+  if (!resolvedCover && audioFiles.length > 0 && A.paused) {
     try {
       const firstLink = await getLink(audioFiles[0].path_lower);
       resolvedCover = await extractEmbeddedArt(firstLink);
@@ -1886,17 +1901,19 @@ A.addEventListener('waiting', () => {
 });
 
 A.addEventListener('stalled', async () => {
-  if (A.paused || A.ended || !activeTrackPath || retriedCurrentSrc) return;
-  retriedCurrentSrc = true;
-  delete linkCache[activeTrackPath];
-  try {
-    const freshLink = await getLink(activeTrackPath, true);
-    const pos = A.currentTime || 0;
-    A.src = freshLink;
-    A.load();
-    A.currentTime = pos;
-    await A.play();
-  } catch (_) {}
+  if (A.paused || A.ended || !activeTrackPath) return;
+  // Only force a new src if networkState shows no source; otherwise let AirPlay buffer finish
+  if (A.networkState === HTMLMediaElement.NETWORK_NO_SOURCE && !retriedCurrentSrc) {
+    retriedCurrentSrc = true;
+    delete linkCache[activeTrackPath];
+    try {
+      const freshLink = await getLink(activeTrackPath, true);
+      const pos = A.currentTime || 0;
+      A.src = freshLink;
+      A.currentTime = pos;
+      await A.play();
+    } catch (_) {}
+  }
 });
 
 A.onerror = async () => {
@@ -1911,7 +1928,6 @@ A.onerror = async () => {
       const freshLink = await getLink(pathToRetry, true);
       if (sessionAtError !== playSessionId) return;
       A.src = freshLink;
-      A.load();
       await A.play();
       return;
     } catch (e) {
