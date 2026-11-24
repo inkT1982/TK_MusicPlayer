@@ -1626,7 +1626,6 @@ async function playIdx(i) {
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
     A.src = link;
-    A.load();
     await A.play();
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
