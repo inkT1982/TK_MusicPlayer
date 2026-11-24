@@ -868,7 +868,7 @@
   <div class="copyright-footer">&copy; TK-100 Digital Audio. All rights reserved.</div>
 </main>
 
-<audio id="a" preload="metadata" playsinline></audio>
+<audio id="a" preload="metadata" playsinline x-webkit-airplay="allow"></audio>
 
 <script>
 const CLIENT_ID = 'dtcnff0rr7py9qc';
@@ -901,10 +901,18 @@ let isAnimating = false;
 let playSessionId = 0;
 let folderSessionId = 0;
 let pendingTrayRequest = null;
+let prefetchTimer = null;
 
 // Tracks whether the active audio element URL came from linkCache for 1-time refresh on error
 let activeTrackPath = '';
 let retriedCurrentSrc = false;
+
+function clearPrefetchTimer() {
+  if (prefetchTimer) {
+    clearTimeout(prefetchTimer);
+    prefetchTimer = null;
+  }
+}
 
 // PKCE Helper Functions
 function generateCodeVerifier() {
@@ -941,11 +949,15 @@ async function getLink(path, forceRefresh = false) {
   return j.link;
 }
 
-function prefetchLink(path) {
-  if (!path || linkCache[path] || isAnimating) return;
-  api('files/get_temporary_link', { path }).then(j => {
-    linkCache[path] = j.link;
-  }).catch(() => {});
+function schedulePrefetchNextTrack(nextPath, sessionId) {
+  clearPrefetchTimer();
+  if (!nextPath || linkCache[nextPath]) return;
+  prefetchTimer = setTimeout(() => {
+    if (sessionId !== playSessionId || isAnimating || A.paused || A.ended) return;
+    api('files/get_temporary_link', { path: nextPath }).then(j => {
+      if (sessionId === playSessionId) linkCache[nextPath] = j.link;
+    }).catch(() => {});
+  }, 4500);
 }
 
 async function extractEmbeddedArt(audioUrl) {
@@ -1004,9 +1016,14 @@ let folderArtQueue = [];
 let activeFolderArtWorkers = 0;
 const MAX_FOLDER_ART_CONCURRENCY = 2;
 
+function isActivelyPlaying() {
+  const src = A.getAttribute('src') || '';
+  return !A.paused && !A.ended && Boolean(src) && !src.startsWith('data:');
+}
+
 function pumpFolderArtQueue() {
-  if (isAnimating || (!A.paused && !A.ended && A.getAttribute('src') && !A.src.startsWith('data:'))) {
-    setTimeout(pumpFolderArtQueue, 400);
+  if (isAnimating || isActivelyPlaying()) {
+    setTimeout(pumpFolderArtQueue, 500);
     return;
   }
   while (activeFolderArtWorkers < MAX_FOLDER_ART_CONCURRENCY && folderArtQueue.length > 0) {
@@ -1052,6 +1069,9 @@ async function runFolderArtJob(folderPath) {
 function getFolderArt(folderPath) {
   if (folderArtCache[folderPath] !== undefined) {
     return Promise.resolve(folderArtCache[folderPath]);
+  }
+  if (isActivelyPlaying()) {
+    return Promise.resolve('');
   }
   return new Promise(resolve => {
     folderArtQueue.push({ folderPath, resolve });
@@ -1203,7 +1223,6 @@ function bindMediaSessionHandlers() {
     m.setActionHandler('previoustrack', () => {
       if (A.currentTime > 3) {
         A.currentTime = 0;
-        syncMediaPosition();
       } else {
         step(-1);
       }
@@ -1220,20 +1239,7 @@ function bindMediaSessionHandlers() {
     m.setActionHandler('seekto', details => {
       if (details && isFinite(details.seekTime) && isFinite(A.duration)) {
         A.currentTime = Math.max(0, Math.min(details.seekTime, A.duration));
-        syncMediaPosition();
       }
-    });
-  } catch (e) {}
-}
-
-function syncMediaPosition() {
-  if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState !== 'function') return;
-  if (!isFinite(A.duration) || A.duration <= 0) return;
-  try {
-    navigator.mediaSession.setPositionState({
-      duration: A.duration,
-      playbackRate: A.playbackRate || 1,
-      position: Math.min(Math.max(0, A.currentTime || 0), A.duration)
     });
   } catch (e) {}
 }
@@ -1249,7 +1255,6 @@ function guessImageMime(url) {
 
 function updateMediaSession(titleText, albumText, artSrc) {
   if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
-  // Avoid passing large base64 data URIs to external/AirPlay MediaSession artwork
   const safeArtSrc = artSrc && !artSrc.startsWith('data:') ? artSrc : '';
   const mime = guessImageMime(safeArtSrc);
   const artworkList = safeArtSrc ? [
@@ -1279,7 +1284,6 @@ function updateMediaSession(titleText, albumText, artSrc) {
       artwork: artworkList
     });
   }
-  syncMediaPosition();
 }
 
 function showLogin(note) {
@@ -1343,9 +1347,10 @@ async function resolveAlbumCoverAsync(loadSession, albumPath, audioFiles, folder
     } catch (e) {}
   }
 
-  if (!resolvedCover && audioFiles.length > 0 && A.paused) {
+  if (!resolvedCover && audioFiles.length > 0 && !isActivelyPlaying()) {
     try {
       const firstLink = await getLink(audioFiles[0].path_lower);
+      if (isActivelyPlaying()) return;
       resolvedCover = await extractEmbeddedArt(firstLink);
     } catch (e) {}
   }
@@ -1366,6 +1371,7 @@ async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, s
   }
 
   const loadSession = ++playSessionId;
+  clearPrefetchTimer();
   activeTrackPath = '';
   A.pause();
   A.removeAttribute('src');
@@ -1508,6 +1514,7 @@ function drawLib() {
   so.onclick = () => {
     ++playSessionId;
     ++folderSessionId;
+    clearPrefetchTimer();
     pendingTrayRequest = null;
     activeTrackPath = '';
     A.pause();
@@ -1576,7 +1583,7 @@ function rowWithThumb(n, t, folderPath, fn) {
     img.src = folderArtCache[folderPath];
     img.style.display = 'block';
     icon.style.display = 'none';
-  } else if (folderArtCache[folderPath] === undefined) {
+  } else if (folderArtCache[folderPath] === undefined && !isActivelyPlaying()) {
     getFolderArt(folderPath).then(url => {
       if (url && img.isConnected) {
         img.src = url;
@@ -1625,6 +1632,7 @@ function draw() {
 async function playIdx(i) {
   if (!tracks.length || i < 0 || i >= tracks.length) return;
   const sessionId = ++playSessionId;
+  clearPrefetchTimer();
   idx = i;
   const trackToPlay = tracks[idx];
   const albumAtStart = currentAlbumPath;
@@ -1633,13 +1641,13 @@ async function playIdx(i) {
   retriedCurrentSrc = false;
 
   draw();
-  drawLib();
   say(`Reading disc…${badge}`);
 
   try {
     const link = await getLink(trackToPlay.path_lower);
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
 
+    updateMediaSession(clean(trackToPlay.name), disc, coverUrl);
     A.src = link;
     await A.play();
     if (sessionId !== playSessionId || currentAlbumPath !== albumAtStart) return;
@@ -1647,13 +1655,10 @@ async function playIdx(i) {
     startSpin();
     say(`${clean(trackToPlay.name)}${badge}`);
 
-    updateMediaSession(clean(trackToPlay.name), disc, coverUrl);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 
-    drawLib();
-
     if (idx + 1 < tracks.length) {
-      prefetchLink(tracks[idx + 1].path_lower);
+      schedulePrefetchNextTrack(tracks[idx + 1].path_lower, sessionId);
     }
   } catch (e) {
     if (sessionId === playSessionId) {
@@ -1673,6 +1678,7 @@ async function playIdx(i) {
 
 function stopPlayback() {
   ++playSessionId;
+  clearPrefetchTimer();
   activeTrackPath = '';
   retriedCurrentSrc = false;
   A.pause();
@@ -1683,7 +1689,6 @@ function stopPlayback() {
   updateSeekFill();
   if ('mediaSession' in navigator) {
     navigator.mediaSession.playbackState = tracks.length ? 'paused' : 'none';
-    syncMediaPosition();
   }
   const badge = isMiniSingle(tracks) ? ' [8cm Single]' : '';
   say(tracks.length ? `${clean(cur().name)}${badge}` : 'No disc');
@@ -1707,6 +1712,7 @@ function step(d) {
       playIdx(0);
     } else {
       ++playSessionId;
+      clearPrefetchTimer();
       A.pause();
       stopSpin();
       A.currentTime = 0;
@@ -1714,7 +1720,6 @@ function step(d) {
       updateSeekFill();
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'paused';
-        syncMediaPosition();
       }
       say('End of disc');
     }
@@ -1776,7 +1781,6 @@ $('#next').onclick = () => step(1);
 $('#prev').onclick = () => {
   if (A.currentTime > 3) {
     A.currentTime = 0;
-    syncMediaPosition();
   } else {
     step(-1);
   }
@@ -1802,6 +1806,7 @@ $('#rep').onclick = e => {
 $('#lib-toggle').onclick = () => {
   const isOpen = $('#lib').classList.toggle('open');
   $('#lib-toggle').setAttribute('aria-expanded', isOpen);
+  if (isOpen) drawLib();
 };
 
 $('#tv-mode').onclick = () => {
@@ -1816,6 +1821,7 @@ $('#eject').onclick = async () => {
   if ((!tracks.length && !disc) || isAnimating) return;
   ++playSessionId;
   ++folderSessionId;
+  clearPrefetchTimer();
   pendingTrayRequest = null;
   activeTrackPath = '';
   retriedCurrentSrc = false;
@@ -1854,7 +1860,6 @@ $('#eject').onclick = async () => {
 $('#seek').oninput = e => {
   if (isFinite(A.duration)) {
     A.currentTime = e.target.value / 1000 * A.duration;
-    syncMediaPosition();
   }
   updateSeekFill();
 };
@@ -1865,7 +1870,6 @@ A.onplay = () => {
   $('#ppi').innerHTML = IC.pause;
   $('#pp').setAttribute('aria-label', 'Pause');
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-  syncMediaPosition();
 };
 
 A.onpause = () => {
@@ -1873,11 +1877,6 @@ A.onpause = () => {
   $('#ppi').innerHTML = IC.play;
   $('#pp').setAttribute('aria-label', 'Play');
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-  syncMediaPosition();
-};
-
-A.onloadedmetadata = () => {
-  syncMediaPosition();
 };
 
 A.ontimeupdate = () => {
@@ -1890,6 +1889,7 @@ A.ontimeupdate = () => {
 };
 
 A.onended = () => {
+  clearPrefetchTimer();
   if (repeatMode === 'one') playIdx(idx);
   else step(1);
 };
@@ -1902,7 +1902,6 @@ A.addEventListener('waiting', () => {
 
 A.addEventListener('stalled', async () => {
   if (A.paused || A.ended || !activeTrackPath) return;
-  // Only force a new src if networkState shows no source; otherwise let AirPlay buffer finish
   if (A.networkState === HTMLMediaElement.NETWORK_NO_SOURCE && !retriedCurrentSrc) {
     retriedCurrentSrc = true;
     delete linkCache[activeTrackPath];
@@ -1916,10 +1915,17 @@ A.addEventListener('stalled', async () => {
   }
 });
 
+A.addEventListener('suspend', () => {
+  if (!A.paused && !A.ended && activeTrackPath && A.readyState < 2) {
+    say('Stream suspended');
+  }
+});
+
 A.onerror = async () => {
   if (!A.getAttribute('src') || A.src.startsWith('data:')) return;
   const sessionAtError = playSessionId;
   const pathToRetry = activeTrackPath || (tracks[idx] && tracks[idx].path_lower);
+  const errCode = A.error ? A.error.code : 0;
 
   if (pathToRetry && !retriedCurrentSrc) {
     retriedCurrentSrc = true;
@@ -1936,16 +1942,8 @@ A.onerror = async () => {
   }
 
   stopSpin();
-  say('Cannot play this file');
+  say(errCode ? `Playback error (${errCode})` : 'Cannot play this file');
 };
-
-document.addEventListener('visibilitychange', () => {
-  if (!('mediaSession' in navigator)) return;
-  if (A.getAttribute('src') && !A.src.startsWith('data:')) {
-    navigator.mediaSession.playbackState = (!A.paused && !A.ended) ? 'playing' : 'paused';
-    syncMediaPosition();
-  }
-});
 
 bindMediaSessionHandlers();
 
