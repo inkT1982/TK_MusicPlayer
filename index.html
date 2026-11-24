@@ -719,7 +719,7 @@
     margin-bottom: 0 !important;
   }
 
-  /* LANDSCAPE LAYOUT: CD bay >= 50% of app frame, compact controls */
+  /* LANDSCAPE LAYOUT: balanced outer margin, ~6-7% larger CD bay */
   @media (orientation: landscape) and (max-height: 700px) {
     body {
       flex-direction: row;
@@ -727,19 +727,19 @@
       align-items: center;
       min-height: 100vh;
       overflow-y: auto;
-      padding: 16px;
+      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
     }
     .deck {
-      max-width: min(820px, 95vw);
+      max-width: min(860px, calc(100vw - 24px));
       width: 100%;
       height: auto;
-      max-height: 92vh;
+      max-height: calc(100vh - 24px);
       display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      gap: 10px clamp(16px, 3vw, 24px);
+      grid-template-columns: 1.22fr 1fr;
+      gap: 9px clamp(16px, 3vw, 24px);
       align-content: center;
       align-items: center;
-      padding: clamp(14px, 2.5vw, 20px);
+      padding: clamp(12px, 2vw, 18px);
       position: relative;
       overflow: visible;
     }
@@ -747,7 +747,7 @@
       grid-column: 1;
       grid-row: 1 / span 6;
       width: 100%;
-      max-width: min(360px, 74vh);
+      max-width: min(385px, 80vh);
       aspect-ratio: 1;
       margin: 0 auto;
     }
@@ -1217,7 +1217,6 @@ function bindMediaSessionHandlers() {
   if (!('mediaSession' in navigator)) return;
   const m = navigator.mediaSession;
 
-  // Explicitly clear seekbackward and seekforward so iOS shows Previous/Next track controls
   try { m.setActionHandler('seekbackward', null); } catch (e) {}
   try { m.setActionHandler('seekforward', null); } catch (e) {}
 
