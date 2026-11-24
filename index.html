@@ -719,27 +719,27 @@
     margin-bottom: 0 !important;
   }
 
-  /* LANDSCAPE LAYOUT: balanced outer margin, ~6-7% larger CD bay */
-  @media (orientation: landscape) and (max-height: 700px) {
+  /* LANDSCAPE LAYOUT: tight outer margin matching sides, ~7% larger CD bay across landscape viewports */
+  @media (orientation: landscape) and (max-height: 900px) {
     body {
       flex-direction: row;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       overflow-y: auto;
-      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
     }
     .deck {
-      max-width: min(860px, calc(100vw - 24px));
+      max-width: min(920px, calc(100vw - 16px));
       width: 100%;
       height: auto;
-      max-height: calc(100vh - 24px);
+      max-height: calc(100vh - 16px);
       display: grid;
-      grid-template-columns: 1.22fr 1fr;
-      gap: 9px clamp(16px, 3vw, 24px);
+      grid-template-columns: 1.28fr 1fr;
+      gap: 8px clamp(16px, 3vw, 26px);
       align-content: center;
       align-items: center;
-      padding: clamp(12px, 2vw, 18px);
+      padding: clamp(10px, 1.8vw, 16px);
       position: relative;
       overflow: visible;
     }
@@ -747,7 +747,7 @@
       grid-column: 1;
       grid-row: 1 / span 6;
       width: 100%;
-      max-width: min(385px, 80vh);
+      max-width: min(410px, 84vh);
       aspect-ratio: 1;
       margin: 0 auto;
     }
@@ -798,8 +798,8 @@
     }
     .lib {
       position: absolute;
-      top: 62px;
-      right: 20px;
+      top: 56px;
+      right: 16px;
       width: 340px;
       max-height: 270px;
       background: #141416;
