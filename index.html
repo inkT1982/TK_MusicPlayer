@@ -897,6 +897,7 @@ let repeatMode = 'off'; // 'off' | 'all' | 'one'
 let unlocked = false;
 let folderCoverUrl = '';
 let coverUrl = '';
+let activeArtworkBlobUrl = '';
 let isAnimating = false;
 let playSessionId = 0;
 let folderSessionId = 0;
@@ -911,6 +912,30 @@ function clearPrefetchTimer() {
   if (prefetchTimer) {
     clearTimeout(prefetchTimer);
     prefetchTimer = null;
+  }
+}
+
+function revokeArtworkBlobUrl() {
+  if (activeArtworkBlobUrl) {
+    try { URL.revokeObjectURL(activeArtworkBlobUrl); } catch (_) {}
+    activeArtworkBlobUrl = '';
+  }
+}
+
+function dataUrlToBlobUrl(dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    if (parts.length < 2) return '';
+    const mimeMatch = parts[0].match(/data:([^;]+);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const binary = atob(parts[1]);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch (_) {
+    return '';
   }
 }
 
@@ -1192,6 +1217,7 @@ function bindMediaSessionHandlers() {
   if (!('mediaSession' in navigator)) return;
   const m = navigator.mediaSession;
 
+  // Explicitly clear seekbackward and seekforward so iOS shows Previous/Next track controls
   try { m.setActionHandler('seekbackward', null); } catch (e) {}
   try { m.setActionHandler('seekforward', null); } catch (e) {}
 
@@ -1255,35 +1281,30 @@ function guessImageMime(url) {
 
 function updateMediaSession(titleText, albumText, artSrc) {
   if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
-  const safeArtSrc = artSrc && !artSrc.startsWith('data:') ? artSrc : '';
-  const mime = guessImageMime(safeArtSrc);
-  const artworkList = safeArtSrc ? [
-    { src: safeArtSrc, sizes: '256x256', type: mime },
-    { src: safeArtSrc, sizes: '512x512', type: mime }
+  revokeArtworkBlobUrl();
+
+  let sessionArtSrc = '';
+  if (artSrc) {
+    if (artSrc.startsWith('data:')) {
+      sessionArtSrc = dataUrlToBlobUrl(artSrc);
+      if (sessionArtSrc) activeArtworkBlobUrl = sessionArtSrc;
+    } else {
+      sessionArtSrc = artSrc;
+    }
+  }
+
+  const mime = guessImageMime(sessionArtSrc);
+  const artworkList = sessionArtSrc ? [
+    { src: sessionArtSrc, sizes: '256x256', type: mime },
+    { src: sessionArtSrc, sizes: '512x512', type: mime }
   ] : [];
 
-  try {
-    if (navigator.mediaSession.metadata) {
-      navigator.mediaSession.metadata.title = titleText;
-      navigator.mediaSession.metadata.artist = 'TK-100 Compact Disc';
-      navigator.mediaSession.metadata.album = albumText;
-      navigator.mediaSession.metadata.artwork = artworkList;
-    } else {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: titleText,
-        artist: 'TK-100 Compact Disc',
-        album: albumText,
-        artwork: artworkList
-      });
-    }
-  } catch (_) {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: titleText,
-      artist: 'TK-100 Compact Disc',
-      album: albumText,
-      artwork: artworkList
-    });
-  }
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: titleText,
+    artist: 'TK-100 Compact Disc',
+    album: albumText,
+    artwork: artworkList
+  });
 }
 
 function showLogin(note) {
@@ -1362,6 +1383,9 @@ async function resolveAlbumCoverAsync(loadSession, albumPath, audioFiles, folder
   coverUrl = resolvedCover;
   draw();
   drawLib();
+  if (idx >= 0 && tracks[idx]) {
+    updateMediaSession(clean(tracks[idx].name), disc, coverUrl);
+  }
 }
 
 async function loadAlbumIntoTray(audioFiles, albumName, albumPath, folderView, startIdx = 0, autoPlayAfterLoad = false) {
@@ -1515,6 +1539,7 @@ function drawLib() {
     ++playSessionId;
     ++folderSessionId;
     clearPrefetchTimer();
+    revokeArtworkBlobUrl();
     pendingTrayRequest = null;
     activeTrackPath = '';
     A.pause();
@@ -1655,6 +1680,7 @@ async function playIdx(i) {
     startSpin();
     say(`${clean(trackToPlay.name)}${badge}`);
 
+    bindMediaSessionHandlers();
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 
     if (idx + 1 < tracks.length) {
@@ -1679,6 +1705,7 @@ async function playIdx(i) {
 function stopPlayback() {
   ++playSessionId;
   clearPrefetchTimer();
+  revokeArtworkBlobUrl();
   activeTrackPath = '';
   retriedCurrentSrc = false;
   A.pause();
@@ -1822,6 +1849,7 @@ $('#eject').onclick = async () => {
   ++playSessionId;
   ++folderSessionId;
   clearPrefetchTimer();
+  revokeArtworkBlobUrl();
   pendingTrayRequest = null;
   activeTrackPath = '';
   retriedCurrentSrc = false;
@@ -1864,11 +1892,16 @@ $('#seek').oninput = e => {
   updateSeekFill();
 };
 
+A.addEventListener('playing', () => {
+  bindMediaSessionHandlers();
+});
+
 A.onplay = () => {
   unlocked = true;
   startSpin();
   $('#ppi').innerHTML = IC.pause;
   $('#pp').setAttribute('aria-label', 'Pause');
+  bindMediaSessionHandlers();
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 };
 
